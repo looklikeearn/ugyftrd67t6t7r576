@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #27026b, #0895c4);
+      border: none;
+      border-radius: 14px;
+      text-decoration: none;
+      font-size: 1rem;
+      padding: 10px;
+      aspect-ratio: 1 / 1;
+      transition: transform 0.2s ease, background 0.2s ease;
+      color: #fff;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+      background: linear-gradient(135deg, #2500aa, #0099cc);
+    }
+
+    .btn i {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 400px) {
+      .btn {
+        font-size: 0.9rem;
+      }
+
+      .btn i {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grid-container">
+    <a href="all.html" class="btn">
+      <i class="fas fa-trophy" style="color: gold;"></i>
+      All Rank
+    </a>
+    <a href="arrear.html" class="btn">
+      <i class="fas fa-times-circle" style="color: red;"></i>
+      Arrears
+    </a>
+    <a href="core.html" class="btn">
+      <i class="fas fa-cogs" style="color: lightgreen;"></i>
+      Core
+    </a>
+    <a href="code.html" class="btn">
+      <i class="fas fa-code" style="color: deepskyblue;"></i>
+      Programming
+    </a>
+    <a href="perfom.html" class="btn">
+      <i class="fas fa-chart-line" style="color: orange;"></i>
+      Performance
+    </a>
+    <a href="class.html" class="btn">
+      <i class="fas fa-users" style="color: violet;"></i>
+      Classes
+    </a>
+    <a href="improve.html" class="btn">
+      <i class="fas fa-arrow-up" style="color: cyan;"></i>
+      Improved
+    </a>
+  </div>
+
+</body>
+</html>
