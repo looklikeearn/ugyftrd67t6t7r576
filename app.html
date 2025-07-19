@@ -1,56 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Download Sastra App</title>
-  <style>
-    body {
-      display: flex;
-      height: 100vh;
-      background: linear-gradient(135deg, #4CAF50, #2196F3);
-      color: #fff;
-      font-family: Arial, sans-serif;
-      justify-content: center;
-      align-items: center;
-      margin: 0;
-    }
-    .container {
-      text-align: center;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 40px;
-      border-radius: 20px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-      max-width: 400px;
-    }
-    h1 {
-      font-size: 28px;
-      margin-bottom: 10px;
-    }
-    p {
-      font-size: 16px;
-      margin-bottom: 20px;
-    }
-    .download-btn {
-      display: inline-block;
-      background-color: #FF9800;
-      color: #fff;
-      padding: 12px 30px;
-      border-radius: 30px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: background 0.3s;
-    }
-    .download-btn:hover {
-      background-color: #F57C00;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Download APK</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="container">
-    <h1>Download Sastra App</h1>
-    <p>Click the button below to download the Sastra APK.</p>
-    <a href="sastra.apk" class="download-btn" download>Download Now</a>
+
+<body class="bg-gradient-to-b from-indigo-900 to-black text-white font-sans min-h-screen flex items-center justify-center">
+
+  <div class="w-full max-w-md mx-auto bg-gray-900 bg-opacity-90 px-6 py-8 rounded-2xl shadow-2xl space-y-6">
+    <h2 class="text-3xl font-bold text-center text-green-400">📱 Download the Sastra App</h2>
+    
+    <div class="text-center">
+      <p class="text-lg font-semibold text-white">Click below to download the Sastra App</p>
+      
+      <a href="https://www.sastra.fun/apk/sastra.apk" 
+         class="mt-4 inline-block px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300">
+        Download APK
+      </a>
+    </div>
+
+    <p class="mt-4 text-center text-gray-300">Or scan the QR code to download</p>
+
+    <div class="flex justify-center mt-4">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?data=https://www.sastra.fun/apk/sastra.apk&size=200x200" alt="Download APK QR Code" />
+    </div>
+
   </div>
+
 </body>
+
 </html>
