@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student List</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- TailwindCSS for modern styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="max-w-4xl mx-auto p-6">
+
+    <!-- Search Bar -->
+    <div class="mb-6">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search by Name or Reg No..."
+        class="w-full p-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+
+    <!-- Students List -->
+    <div id="studentList" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <!-- Cards will be inserted here -->
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
+      authDomain: "test-d6f13.firebaseapp.com",
+      projectId: "test-d6f13",
+      storageBucket: "test-d6f13.appspot.com",
+      messagingSenderId: "1043978393185",
+      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20",
+      measurementId: "G-VLTFR2GXGS"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const studentList = document.getElementById("studentList");
+    const searchInput = document.getElementById("searchInput");
+
+    let allStudents = [];
+
+    async function loadStudents() {
+      const querySnapshot = await getDocs(collection(db, "students"));
+      allStudents = querySnapshot.docs.map(doc => doc.data());
+      displayStudents(allStudents);
+    }
+
+    function displayStudents(students) {
+      studentList.innerHTML = "";
+      if (students.length === 0) {
+        studentList.innerHTML = `<p class="text-center text-gray-500 col-span-2">No matching students found.</p>`;
+        return;
+      }
+
+      students.forEach(data => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-xl shadow-md p-4 cursor-pointer hover:bg-blue-50 transition";
+        card.innerHTML = `
+          <h2 class="text-xl font-semibold text-gray-800">${data.name}</h2>
+          <p class="text-gray-500">Reg No: ${data.roll}</p>
+        `;
+        card.onclick = () => {
+          window.location.href = `view.html?roll=${data.roll}`;
+        };
+        studentList.appendChild(card);
+      });
+    }
+
+    searchInput.addEventListener("input", () => {
+      const searchTerm = searchInput.value.trim().toLowerCase();
+      const filtered = allStudents.filter(student =>
+        student.name.toLowerCase().includes(searchTerm) ||
+        student.roll.toLowerCase().includes(searchTerm)
+      );
+      displayStudents(filtered);
+    });
+
+    loadStudents();
+  </script>
+</body>
+</html>
