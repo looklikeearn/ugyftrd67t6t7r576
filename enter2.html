@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mobile Student Entry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-b from-indigo-900 to-black text-white font-sans min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-md mx-auto bg-gray-900 bg-opacity-90 px-6 py-8 rounded-2xl shadow-2xl space-y-6">
+    <h2 class="text-2xl font-bold text-center text-green-400">🎓 Add Student Record</h2>
+    <form id="studentForm" class="space-y-5">
+      <select id="classType" class="w-full p-3 rounded-xl bg-indigo-800 text-white focus:ring-2 focus:ring-green-400" required>
+        <option value="" disabled selected>Select Class</option>
+        <option>B.Tech Electronics & Communication Engineering</option>
+        <option>B.Tech Computer Science</option>
+        <option>B.Sc Electronics & Communication System</option>
+        <option>B.Sc Computer Science</option>
+        <option>BCA</option>
+      </select>
+
+      <div class="space-y-4">
+        <input type="text" id="name" placeholder="Student Name" class="w-full p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-purple-400" required>
+        <input type="text" id="roll" placeholder="Roll Number" class="w-full p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-purple-400" required>
+      </div>
+
+      <input type="number" step="0.01" max="10" id="cgpa" placeholder="CGPA (Max 10)" class="w-full p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-yellow-400" required>
+
+      <div id="sgpaContainer" class="space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="font-semibold text-teal-300">Semesters</h3>
+          <div>
+            <button type="button" id="addSemester" class="px-3 py-1 bg-teal-600 rounded-lg">+ Sem</button>
+            <button type="button" id="removeSemester" class="px-3 py-1 bg-red-700 rounded-lg ml-2">– Sem</button>
+          </div>
+        </div>
+        <div id="sgpaFields" class="space-y-3"></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <input type="number" id="totalDays" placeholder="Total Days" class="p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-pink-400" required>
+        <input type="number" id="presentDays" placeholder="Present Days" class="p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-pink-400" required>
+        <input type="number" id="absentDays" placeholder="Absent Days" class="p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-pink-400" required>
+        <input type="number" id="totalArrears" placeholder="Total Arrears" class="p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-pink-400">
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center">
+          <h3 class="font-semibold text-blue-300">Core Subjects</h3>
+          <div>
+            <button type="button" id="addCore" class="px-3 py-1 bg-blue-600 rounded-lg">+ Core</button>
+            <button type="button" id="removeCore" class="px-3 py-1 bg-red-700 rounded-lg ml-2">– Core</button>
+          </div>
+        </div>
+        <div id="coreSubjects" class="space-y-3"></div>
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center">
+          <h3 class="font-semibold text-orange-300">Programming Subjects</h3>
+          <div>
+            <button type="button" id="addProg" class="px-3 py-1 bg-orange-600 rounded-lg">+ Prog</button>
+            <button type="button" id="removeProg" class="px-3 py-1 bg-red-700 rounded-lg ml-2">– Prog</button>
+          </div>
+        </div>
+        <div id="progSubjects" class="space-y-3"></div>
+      </div>
+
+      <button type="submit" class="w-full py-3 bg-green-500 rounded-xl font-bold text-black hover:bg-green-600 transition">💾 Save Record</button>
+    </form>
+    <p id="status" class="text-center text-green-400 font-medium hidden">✅ Saved Successfully!</p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
+      authDomain: "test-d6f13.firebaseapp.com",
+      projectId: "test-d6f13",
+      storageBucket: "test-d6f13.appspot.com",
+      messagingSenderId: "1043978393185",
+      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20",
+      measurementId: "G-VLTFR2GXGS"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let semesterCount = 2;
+    const sgpaFields = document.getElementById("sgpaFields");
+    const coreContainer = document.getElementById("coreSubjects");
+    const progContainer = document.getElementById("progSubjects");
+
+    function makeRow(nameClass, markClass, namePlaceholder, markPlaceholder) {
+      return `
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" class="${nameClass} p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-white" placeholder="${namePlaceholder}">
+          <input type="number" class="${markClass} p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-white" placeholder="${markPlaceholder}" min="0" max="100">
+        </div>`;
+    }
+
+    function renderSemesters() {
+      sgpaFields.innerHTML = '';
+      for (let i = 1; i <= semesterCount; i++) {
+        sgpaFields.innerHTML += `
+          <div class="grid grid-cols-2 gap-2">
+            <input type="number" id="sgpa${i}" placeholder="SGPA Sem ${i}" step="0.01" max="10" class="p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-yellow-400">
+            <input type="number" id="arrear${i}" placeholder="Arrears Sem ${i}" min="0" class="p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-yellow-400">
+          </div>`;
+      }
+    }
+    renderSemesters();
+
+    document.getElementById("addSemester").onclick = () => { semesterCount++; renderSemesters(); };
+    document.getElementById("removeSemester").onclick = () => { if (semesterCount > 1) semesterCount--; renderSemesters(); };
+
+    document.getElementById("addCore").onclick = () => {
+      coreContainer.insertAdjacentHTML('beforeend', makeRow('coreName', 'coreMark', 'Core Subject', 'Marks'));
+    };
+    document.getElementById("removeCore").onclick = () => {
+      if (coreContainer.children.length) coreContainer.removeChild(coreContainer.lastElementChild);
+    };
+
+    document.getElementById("addProg").onclick = () => {
+      progContainer.insertAdjacentHTML('beforeend', makeRow('progName', 'progMark', 'Prog Subject', 'Marks'));
+    };
+    document.getElementById("removeProg").onclick = () => {
+      if (progContainer.children.length) progContainer.removeChild(progContainer.lastElementChild);
+    };
+
+    document.getElementById("studentForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const classType = document.getElementById("classType").value;
+      const name = document.getElementById("name").value.trim();
+      const roll = document.getElementById("roll").value.trim();
+      const cgpa = Math.min(parseFloat(document.getElementById("cgpa").value), 10);
+
+      const sgpa = {}, arrears = { total: parseInt(document.getElementById("totalArrears").value) || 0, sem: {} };
+      for (let i = 1; i <= semesterCount; i++) {
+        sgpa[`sem${i}`] = Math.min(parseFloat(document.getElementById(`sgpa${i}`).value) || 0, 10);
+        arrears.sem[`sem${i}`] = parseInt(document.getElementById(`arrear${i}`).value) || 0;
+      }
+
+      const attendance = {
+        total: parseInt(document.getElementById("totalDays").value) || 0,
+        present: parseInt(document.getElementById("presentDays").value) || 0,
+        absent: parseInt(document.getElementById("absentDays").value) || 0
+      };
+
+      const core = {}, programming = {};
+      document.querySelectorAll('.coreName').forEach((el, i) => {
+        const subj = el.value.trim(), mark = Math.min(parseInt(document.querySelectorAll('.coreMark')[i].value) || 0, 100);
+        if (subj) core[subj] = mark;
+      });
+      document.querySelectorAll('.progName').forEach((el, i) => {
+        const subj = el.value.trim(), mark = Math.min(parseInt(document.querySelectorAll('.progMark')[i].value) || 0, 100);
+        if (subj) programming[subj] = mark;
+      });
+
+      await setDoc(doc(db, "students", roll), {
+        classType, name, roll, cgpa, sgpa, arrears, attendance, subjects: { core, programming }
+      });
+
+      document.getElementById("status").classList.remove("hidden");
+      setTimeout(() => {
+        document.getElementById("status").classList.add("hidden");
+      }, 2000);
+
+      e.target.reset();
+      semesterCount = 2;
+      renderSemesters();
+      coreContainer.innerHTML = '';
+      progContainer.innerHTML = '';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class View - Students</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-b from-indigo-900 to-black text-white font-sans min-h-screen">
+
+  <div class="w-full max-w-6xl mx-auto bg-gray-900 bg-opacity-90 px-6 py-8 rounded-2xl shadow-2xl space-y-6">
+   
+    <div class="flex justify-end mb-4">
+      <button id="rankWiseBtn" class="bg-teal-500 text-white px-6 py-2 rounded-lg hover:bg-teal-400 focus:outline-none">
+        Show Rank Wise
+      </button>
+    </div>
+
+    <h3 id="deptTitle" class="text-2xl text-center font-semibold text-teal-300"></h3>
+
+    <div class="flex justify-center mb-6">
+      <input 
+        id="search" 
+        type="text" 
+        placeholder="Search by Name or Roll Number..." 
+        class="w-full max-w-xl px-4 py-2 rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-green-400 bg-gray-800 text-white"
+      />
+    </div>
+
+    <div id="studentsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    </div>
+
+    <div id="status" class="text-center text-green-400 font-medium hidden">✅ Students Loaded Successfully!</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
+      authDomain: "test-d6f13.firebaseapp.com",
+      projectId: "test-d6f13",
+      storageBucket: "test-d6f13.appspot.com",
+      messagingSenderId: "1043978393185",
+      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20",
+      measurementId: "G-VLTFR2GXGS"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const studentsListEl = document.getElementById('studentsList');
+    const deptTitle = document.getElementById('deptTitle');
+    const searchInput = document.getElementById('search');
+    let students = [];
+
+    const dept = new URLSearchParams(window.location.search).get("dept");
+
+    const deptMapping = {
+      "B.Tech Electronics & Communication Engineering": "B.Tech Electronics & Communication Engineering",
+      "B.Tech Computer Science": "B.Tech Computer Science",
+      "B.Sc Electronics & Communication System": "B.Sc Electronics & Communication System",
+      "B.Sc Computer Science": "B.Sc Computer Science",
+      "BCA": "BCA"
+    };
+
+    deptTitle.innerText = deptMapping[dept] ? `Students in ${dept}` : "Department Not Found!";
+
+    async function loadStudents() {
+      const q = query(collection(db, "students"), where("dept", "==", dept));
+      const querySnapshot = await getDocs(q);
+      students = querySnapshot.docs.map(doc => doc.data());
+
+      students.sort((a, b) => a.roll.localeCompare(b.roll));
+
+      renderList(students);
+
+      const status = document.getElementById('status');
+      status.classList.remove('hidden');
+      setTimeout(() => status.classList.add('hidden'), 2000);
+    }
+
+    function renderList(list) {
+      studentsListEl.innerHTML = '';
+      list.forEach(student => {
+        const card = document.createElement('div');
+        card.className = "bg-gray-800 p-6 rounded-xl hover:bg-teal-600 transition cursor-pointer";
+        card.innerHTML = `
+          <h3 class="text-xl font-semibold">${student.name}</h3>
+          <p class="text-md text-gray-300">Roll No: ${student.roll}</p>
+          <p class="text-sm text-teal-300">CGPA: ${student.cgpa}</p>
+          <p class="text-sm text-pink-300">Total Arrears: ${student.arrears?.total || 0}</p>
+          <p class="text-sm text-yellow-400">Semesters:</p>
+          <ul class="text-sm text-white pl-4">
+            ${Object.entries(student.arrears?.sem || {}).map(([key, val]) => `
+              <li>${key.replace("sem", "Sem ")}: ${val} arrears</li>
+            `).join("")}
+          </ul>
+        `;
+        card.onclick = () => {
+          window.location.href = `view.html?roll=${encodeURIComponent(student.roll)}`;
+        };
+        studentsListEl.appendChild(card);
+      });
+    }
+
+    searchInput.addEventListener("input", () => {
+      const query = searchInput.value.toLowerCase();
+      const filtered = students.filter(s =>
+        s.name.toLowerCase().includes(query) ||
+        s.roll.toLowerCase().includes(query)
+      );
+      renderList(filtered);
+    });
+
+    document.getElementById('rankWiseBtn').addEventListener('click', () => {
+  
+      const rankedStudents = [...students].sort((a, b) => b.cgpa - a.cgpa);
+l
+      localStorage.setItem('rankedStudents', JSON.stringify(rankedStudents));
+      window.location.href = 'classrank.html';
+    });
+
+    loadStudents();
+  </script>
+
+</body>
+</html>

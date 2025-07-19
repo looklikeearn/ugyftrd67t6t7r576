@@ -5,13 +5,10 @@
   <title>Student Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <!-- Tailwind CSS -->
+ 
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Chart.js Data Labels -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-  <!-- jsPDF & html2canvas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -36,7 +33,6 @@
       </button>
     </div>
 
-    <!-- View Full Details Button -->
 <div class="text-center mt-10">
   <a id="detailsBtn" href="#" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-6 py-3 rounded-xl shadow-md text-sm sm:text-base">
     View Full Details (Pie Chart)
@@ -54,25 +50,22 @@
     </div>
 
     <div class="space-y-8">
-      <!-- SGPA -->
+      
       <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
         <h3 class="text-xl sm:text-2xl font-semibold text-indigo-300 mb-4">SGPA (Semesters)</h3>
         <canvas id="sgpaChart" height="100"></canvas>
       </div>
 
-      <!-- Core Subjects -->
       <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
         <h3 class="text-xl sm:text-2xl font-semibold text-green-300 mb-4">Core Subject Marks</h3>
         <canvas id="coreChart" height="100"></canvas>
       </div>
 
-      <!-- Programming Subjects -->
       <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
         <h3 class="text-xl sm:text-2xl font-semibold text-yellow-300 mb-4">Programming Subject Marks</h3>
         <canvas id="progChart" height="100"></canvas>
       </div>
 
-      <!-- Attendance -->
       <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
         <h3 class="text-xl sm:text-2xl font-semibold text-pink-300 mb-4">Attendance</h3>
         <canvas id="attendanceChart" height="100"></canvas>
@@ -85,7 +78,6 @@
     </div>
   </div>
 
-  <!-- Scripts -->
   <script>
     async function downloadPDF() {
       const { jsPDF } = window.jspdf;
@@ -134,7 +126,6 @@
         document.getElementById("detailsBtn").href = `details.html?regNo=${roll}`;
 
 
-        // Attendance info
         const present = data.attendance.present;
         const absent = data.attendance.absent;
         const total = present + absent;
@@ -172,7 +163,6 @@
         }
       };
 
-      // SGPA Chart
       new Chart(document.getElementById("sgpaChart"), {
         type: "bar",
         data: {
@@ -191,7 +181,6 @@
         plugins: [ChartDataLabels]
       });
 
-      // Core Subjects
       const coreLabels = Object.keys(data.subjects.core);
       const coreData = Object.values(data.subjects.core);
       const coreColors = coreLabels.map((_, i) =>
@@ -215,7 +204,6 @@
         plugins: [ChartDataLabels]
       });
 
-      // Programming Subjects
       const progLabels = Object.keys(data.subjects.programming);
       const progData = Object.values(data.subjects.programming);
       const progColors = progLabels.map((_, i) =>
@@ -239,7 +227,6 @@
         plugins: [ChartDataLabels]
       });
 
-      // Attendance
       new Chart(document.getElementById("attendanceChart"), {
         type: "bar",
         data: {

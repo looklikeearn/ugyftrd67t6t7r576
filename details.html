@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Student Subject Analysis</title>
 
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Firebase -->
   <script type="module" src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js"></script>
 
@@ -60,7 +58,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js";
     import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js";
 
-    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
       authDomain: "test-d6f13.firebaseapp.com",
@@ -71,11 +68,9 @@
       measurementId: "G-VLTFR2GXGS"
     };
 
-    // Init Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Get regNo from URL
     const params = new URLSearchParams(window.location.search);
     const regNo = params.get("regNo");
 
@@ -95,20 +90,17 @@
 
       const data = studentSnap.data();
 
-      // Display student info
       document.getElementById("studentInfo").innerHTML = `
         <h3>${data.name} (${data.roll})</h3>
         <p>Department: ${data.dept} | CGPA: ${data.cgpa}</p>
       `;
 
-      // Calculate total marks
       const coreSubjects = data.subjects?.core || {};
       const programmingSubjects = data.subjects?.programming || {};
 
       const coreTotal = Object.values(coreSubjects).reduce((sum, mark) => sum + (parseFloat(mark) || 0), 0);
       const progTotal = Object.values(programmingSubjects).reduce((sum, mark) => sum + (parseFloat(mark) || 0), 0);
 
-      // Chart.js pie chart
       const ctx = document.getElementById('pieChart').getContext('2d');
       new Chart(ctx, {
         type: 'pie',
