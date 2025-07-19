@@ -1,27 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Download Sastra App</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Now</title>
+    
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            background: linear-gradient(135deg, #4CAF50, #2196F3);
+            color: #fff;
+            font-family: Arial, sans-serif;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+        .logo {
+            width: 100px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .download-btn {
+            display: inline-block;
+            background-color: #FF9800;
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .download-btn:hover {
+            background-color: #F57C00;
+        }
+    </style>
 </head>
-<body class="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 to-black text-white">
-
-  <div class="max-w-md w-full text-center p-8 bg-gray-800 rounded-2xl shadow-lg">
-   
-    <img src="https://raw.githubusercontent.com/looklikeearn/ugyftrd67t6t7r576/main/your-image.png" alt="Sastra App" class="w-full h-auto rounded-lg mb-6 shadow-md border border-gray-600" />
-
-    <h1 class="text-3xl font-bold text-green-400 mb-4">Download Sastra App</h1>
-
-    <p class="mb-6 text-gray-300">Click the button below to download the Sastra APK directly to your device.</p>
-
-    <a href="https://raw.githubusercontent.com/looklikeearn/ugyftrd67t6t7r576/main/sastra.apk" download="sastra.apk">
-      <button class="px-6 py-3 bg-teal-500 text-white font-medium rounded-lg hover:bg-teal-600 transition duration-300">
-        Download Sastra APK
-      </button>
-    </a>
-  </div>
-
+<body>
+    <div class="container">
+        
+        <h1>Download</h1>
+        <a href="sastra.apk" class="download-btn">Download Now</a>
+    </div>
 </body>
 </html>
