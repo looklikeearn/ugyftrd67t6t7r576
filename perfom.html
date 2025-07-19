@@ -4,142 +4,81 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Extra Performers</title>
-  <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
-  <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      padding: 20px;
-    }
 
-    h1 {
-      text-align: center;
-      color: #444;
-    }
-
-    input[type="text"] {
-      display: block;
-      margin: 0 auto 20px;
-      padding: 10px;
-      width: 90%;
-      max-width: 400px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-
-    #list {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      padding: 15px;
-      width: 300px;
-      transition: transform 0.2s;
-    }
-
-    .card:hover {
-      transform: translateY(-5px);
-    }
-
-    .card h3 {
-      margin: 0 0 10px;
-      color: #333;
-    }
-
-    .card p {
-      margin: 5px 0;
-      font-size: 14px;
-      color: #555;
-    }
-
-    .view-btn {
-      display: inline-block;
-      margin-top: 10px;
-      padding: 6px 12px;
-      background-color: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-
-    .view-btn:hover {
-      background-color: #0056b3;
-    }
-  </style>
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Extra Performance Students</h1>
-  <input type="text" id="search" placeholder="Search by name, regno, dept..."/>
-  <div id="list"></div>
+<body class="bg-gray-900 text-white min-h-screen px-4 py-6">
 
+  <h1 class="text-3xl font-bold mb-6 text-center text-emerald-400">🌟 Extra Performers</h1>
+
+  <div class="flex justify-center mb-6">
+    <input id="search" type="text" placeholder="Search by name, reg no, or dept..." class="w-full max-w-xl px-4 py-2 rounded-lg text-black focus:outline-none">
+  </div>
+
+  <div id="studentList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+
+  <!-- Firebase and Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyBbWxipt6n_bOqGhAThGPFFN91g1ZO0als",
-      authDomain: "looklikeearn.firebaseapp.com",
-      projectId: "looklikeearn",
-      storageBucket: "looklikeearn.appspot.com",
-      messagingSenderId: "667043180252",
-      appId: "1:667043180252:web:3fea392fdb97bfd84ece19"
+      apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
+      authDomain: "test-d6f13.firebaseapp.com",
+      projectId: "test-d6f13",
+      storageBucket: "test-d6f13.appspot.com",
+      messagingSenderId: "1043978393185",
+      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20",
+      measurementId: "G-VLTFR2GXGS"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const listDiv = document.getElementById("list");
-    const searchInput = document.getElementById("search");
+    const studentListEl = document.getElementById('studentList');
+    const searchInput = document.getElementById('search');
 
     let students = [];
 
-    async function fetchStudents() {
+    async function loadStudents() {
       const querySnapshot = await getDocs(collection(db, "students"));
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.extra && data.extra.trim() !== "") {
-          students.push(data);
-        }
-      });
-      displayStudents(students);
+      const all = querySnapshot.docs.map(doc => doc.data());
+      students = all.filter(s => s.extraPerformance && s.extraPerformance.length > 0);
+
+      students.sort((a, b) => b.extraPerformance.length - a.extraPerformance.length);
+      renderList(students);
     }
 
-    function displayStudents(data) {
-      listDiv.innerHTML = "";
-      data.forEach(student => {
-        const card = document.createElement("div");
-        card.className = "card";
-        const extra = student.extra.length > 200 ? student.extra.slice(0, 200) + "..." : student.extra;
+    function renderList(data) {
+      studentListEl.innerHTML = '';
+      data.forEach(s => {
+        const card = document.createElement('div');
+        card.className = "bg-gray-800 p-4 rounded-lg hover:bg-emerald-600 transition cursor-pointer";
         card.innerHTML = `
-          <h3>${student.name} (${student.regno})</h3>
-          <p><strong>Dept:</strong> ${student.dept}</p>
-          <p><strong>Extra:</strong> ${extra}</p>
-          <a class="view-btn" href="view.html?roll=${student.regno}">View Full</a>
+          <h2 class="text-xl font-bold">${s.name}</h2>
+          <p>Reg No: ${s.roll}</p>
+          <p>Dept: ${s.dept}</p>
+          <p class="italic text-sm mt-2">"${s.extraPerformance}"</p>
         `;
-        listDiv.appendChild(card);
+        card.onclick = () => {
+          window.location.href = `view.html?roll=${s.roll}`;
+        };
+        studentListEl.appendChild(card);
       });
     }
 
     searchInput.addEventListener("input", () => {
-      const val = searchInput.value.toLowerCase();
+      const query = searchInput.value.toLowerCase();
       const filtered = students.filter(s =>
-        s.name.toLowerCase().includes(val) ||
-        s.regno.toLowerCase().includes(val) ||
-        (s.dept && s.dept.toLowerCase().includes(val))
+        s.name.toLowerCase().includes(query) ||
+        s.roll.toLowerCase().includes(query) ||
+        s.dept.toLowerCase().includes(query)
       );
-      displayStudents(filtered);
+      renderList(filtered);
     });
 
-    fetchStudents();
+    loadStudents();
   </script>
 </body>
 </html>
