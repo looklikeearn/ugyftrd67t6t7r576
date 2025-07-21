@@ -1,0 +1,222 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mentor Feedback</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb {
+      background: #14b8a6;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white p-6">
+  <div class="max-w-xl mx-auto bg-gray-800 p-6 rounded-xl shadow-lg space-y-6">
+    <h1 class="text-2xl font-bold text-center text-teal-400">
+      <i class="fas fa-chalkboard-teacher"></i> Mentor Feedback Panel
+    </h1>
+
+    <!-- Search Student -->
+    <div>
+      <label class="block mb-1 text-teal-300 font-semibold">Search by RegNo</label>
+      <input
+        id="regnoInput"
+        type="text"
+        placeholder="Type regno (e.g., 34...)"
+        class="w-full p-2 rounded bg-gray-700 text-white focus:outline-none"
+        autocomplete="off"
+      />
+      <ul id="suggestions" class="mt-1 bg-gray-700 text-white rounded shadow-md max-h-40 overflow-auto hidden"></ul>
+    </div>
+
+    <!-- Student Info -->
+    <div id="studentInfo" class="hidden space-y-2 bg-gray-700 p-4 rounded-lg">
+      <p><i class="fas fa-user text-teal-400"></i> Name: <span id="studentName"></span></p>
+      <p><i class="fas fa-id-card text-teal-400"></i> RegNo: <span id="studentRegno"></span></p>
+    </div>
+
+    <!-- Rating -->
+    <div class="space-y-4">
+      <h3 class="font-semibold text-teal-300">Rate Performance (%)</h3>
+      <input
+        type="range"
+        id="performanceSlider"
+        min="0"
+        max="100"
+        value="50"
+        class="w-full h-2 bg-teal-600 rounded-lg appearance-none"
+        style="accent-color: #14b8a6"
+      />
+      <div class="flex justify-between text-sm text-teal-300">
+        <span>0%</span><span>100%</span>
+      </div>
+      <p class="text-center mt-1 text-white">
+        Selected: <span id="sliderValue">50</span>%
+      </p>
+    </div>
+
+    <!-- Feedback Text Area -->
+    <div>
+      <label class="block mb-1 text-teal-300 font-semibold">Mentor Feedback</label>
+      <textarea
+        id="feedbackText"
+        rows="3"
+        placeholder="Write feedback here..."
+        class="w-full p-2 rounded bg-gray-700 text-white focus:outline-none"
+      ></textarea>
+    </div>
+
+    <!-- Placement Improvement -->
+    <div>
+      <label class="block mb-1 text-teal-300 font-semibold">Placement Improvement</label>
+      <textarea
+        id="placementImprovement"
+        rows="2"
+        placeholder="Suggestions for placement preparation..."
+        class="w-full p-2 rounded bg-gray-700 text-white focus:outline-none"
+      ></textarea>
+    </div>
+
+    <!-- Submit Button -->
+    <button
+      id="submitBtn"
+      class="w-full py-2 bg-teal-600 hover:bg-teal-700 rounded text-white font-bold"
+    >
+      <i class="fas fa-paper-plane"></i> Submit Feedback
+    </button>
+
+    <div id="status" class="text-sm text-center mt-2"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      doc,
+      updateDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
+      authDomain: "test-d6f13.firebaseapp.com",
+      projectId: "test-d6f13",
+      storageBucket: "test-d6f13.appspot.com",
+      messagingSenderId: "1043978393185",
+      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20",
+      measurementId: "G-VLTFR2GXGS"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const regnoInput = document.getElementById("regnoInput");
+    const suggestions = document.getElementById("suggestions");
+    const studentInfo = document.getElementById("studentInfo");
+    const studentName = document.getElementById("studentName");
+    const studentRegno = document.getElementById("studentRegno");
+    const performanceSlider = document.getElementById("performanceSlider");
+    const sliderValue = document.getElementById("sliderValue");
+    const feedbackText = document.getElementById("feedbackText");
+    const placementImprovement = document.getElementById("placementImprovement");
+    const submitBtn = document.getElementById("submitBtn");
+    const statusDiv = document.getElementById("status");
+
+    let allStudents = [];
+    let selectedStudent = null;
+
+    async function loadStudents() {
+      const snapshot = await getDocs(collection(db, "students"));
+      allStudents = snapshot.docs.map(doc => ({ regno: doc.id, ...doc.data() }));
+    }
+    loadStudents();
+
+    regnoInput.addEventListener("input", () => {
+      const input = regnoInput.value.trim().toLowerCase();
+      suggestions.innerHTML = "";
+      if (!input) {
+        suggestions.classList.add("hidden");
+        return;
+      }
+
+      const matches = allStudents.filter(s => s.regno.toLowerCase().includes(input));
+      if (matches.length === 0) {
+        suggestions.classList.add("hidden");
+        return;
+      }
+
+      matches.forEach(s => {
+        const li = document.createElement("li");
+        li.textContent = `${s.regno}`;
+        li.className = "p-2 hover:bg-teal-600 cursor-pointer";
+        li.onclick = () => selectStudent(s);
+        suggestions.appendChild(li);
+      });
+
+      suggestions.classList.remove("hidden");
+    });
+
+    function selectStudent(student) {
+      selectedStudent = student;
+      studentName.textContent = student.name || "N/A";
+      studentRegno.textContent = student.regno;
+      studentInfo.classList.remove("hidden");
+      regnoInput.value = student.regno;
+      suggestions.classList.add("hidden");
+    }
+
+    performanceSlider.addEventListener("input", () => {
+      sliderValue.textContent = performanceSlider.value;
+    });
+
+    submitBtn.addEventListener("click", async () => {
+      statusDiv.textContent = "";
+      const feedback = feedbackText.value.trim();
+      const placement = placementImprovement.value.trim();
+
+      if (!selectedStudent) {
+        return showStatus("❌ Please select a student.", "red");
+      }
+
+      if (feedback === "") {
+        return showStatus("❌ Feedback is required.", "red");
+      }
+
+      try {
+        const studentRef = doc(db, "students", selectedStudent.regno);
+        await updateDoc(studentRef, {
+          mentorFeedback: {
+            performance: parseInt(performanceSlider.value),
+            feedback: feedback,
+            placementImprovement: placement,
+            timestamp: serverTimestamp()
+          }
+        });
+
+        showStatus("✅ Feedback submitted successfully!", "green");
+        feedbackText.value = "";
+        placementImprovement.value = "";
+        performanceSlider.value = 50;
+        sliderValue.textContent = 50;
+      } catch (e) {
+        console.error(e);
+        showStatus("❌ Failed to submit feedback.", "red");
+      }
+    });
+
+    function showStatus(msg, color) {
+      statusDiv.textContent = msg;
+      statusDiv.style.color = color === "red" ? "#f87171" : "#34d399";
+      setTimeout(() => {
+        statusDiv.textContent = "";
+      }, 4000);
+    }
+  </script>
+</body>
+</html>

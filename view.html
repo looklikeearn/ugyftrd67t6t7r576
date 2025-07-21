@@ -5,7 +5,6 @@
   <title>Student Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
- 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
@@ -33,14 +32,13 @@
       </button>
     </div>
 
-<div class="text-center mt-10">
-  <a id="detailsBtn" href="#" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-6 py-3 rounded-xl shadow-md text-sm sm:text-base">
-    View Full Details (Pie Chart)
-  </a>
-</div>
+    <div class="text-center mt-10">
+      <a id="detailsBtn" href="#" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-6 py-3 rounded-xl shadow-md text-sm sm:text-base">
+        View Full Details (Pie Chart)
+      </a>
+    </div>
 
-
-    <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg mb-8">
+    <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg mb-8 mt-6">
       <h2 id="studentName" class="text-3xl sm:text-4xl font-extrabold text-indigo-400 mb-4"></h2>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-gray-300 text-sm sm:text-base">
         <p><strong>Reg No:</strong> <span id="studentRoll"></span></p>
@@ -50,7 +48,6 @@
     </div>
 
     <div class="space-y-8">
-      
       <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
         <h3 class="text-xl sm:text-2xl font-semibold text-indigo-300 mb-4">SGPA (Semesters)</h3>
         <canvas id="sgpaChart" height="100"></canvas>
@@ -73,6 +70,15 @@
           <p><strong>Total Classes:</strong> <span id="totalClasses"></span></p>
           <p><strong>Present:</strong> <span id="presentDays"></span></p>
           <p><strong>Absent:</strong> <span id="absentDays"></span></p>
+        </div>
+      </div>
+
+      <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
+        <h3 class="text-xl sm:text-2xl font-semibold text-cyan-300 mb-4">🧑‍🏫 Mentor Feedback</h3>
+        <div class="text-gray-300 text-sm sm:text-base space-y-2">
+          <p><strong>Performance Rating:</strong> <span id="mentorPerformance">N/A</span>%</p>
+          <p><strong>Feedback:</strong> <span id="mentorFeedback">No feedback provided.</span></p>
+          <p><strong>Placement Improvement:</strong> <span id="mentorPlacement">None</span></p>
         </div>
       </div>
     </div>
@@ -125,7 +131,6 @@
         document.getElementById("studentCGPA").textContent = data.cgpa;
         document.getElementById("detailsBtn").href = `details.html?regNo=${roll}`;
 
-
         const present = data.attendance.present;
         const absent = data.attendance.absent;
         const total = present + absent;
@@ -133,6 +138,12 @@
         document.getElementById("presentDays").textContent = present;
         document.getElementById("absentDays").textContent = absent;
         document.getElementById("totalClasses").textContent = total;
+
+        if (data.mentorFeedback) {
+          document.getElementById("mentorPerformance").textContent = data.mentorFeedback.performance ?? 'N/A';
+          document.getElementById("mentorFeedback").textContent = data.mentorFeedback.feedback || 'No feedback provided.';
+          document.getElementById("mentorPlacement").textContent = data.mentorFeedback.placementImprovement || 'None';
+        }
 
         renderCharts(data);
       } else {
