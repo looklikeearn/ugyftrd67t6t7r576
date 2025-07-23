@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <title>Student Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -22,7 +22,6 @@
     }
   </style>
 </head>
-
 <body class="text-white font-sans">
   <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6" id="reportContent">
     <div class="mb-6 flex justify-between items-center">
@@ -61,6 +60,11 @@
       <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
         <h3 class="text-xl sm:text-2xl font-semibold text-yellow-300 mb-4">Programming Subject Marks</h3>
         <canvas id="progChart" height="100"></canvas>
+      </div>
+
+      <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
+        <h3 class="text-xl sm:text-2xl font-semibold text-purple-300 mb-4">CIA Marks</h3>
+        <canvas id="ciaChart" height="100"></canvas>
       </div>
 
       <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
@@ -125,20 +129,26 @@
 
       if (docSnap.exists()) {
         const data = docSnap.data();
-        document.getElementById("studentName").textContent = data.name;
-        document.getElementById("studentRoll").textContent = data.roll;
-        document.getElementById("studentDept").textContent = data.dept;
-        document.getElementById("studentCGPA").textContent = data.cgpa;
+
+        document.getElementById("studentName").textContent = data.name || "N/A";
+        document.getElementById("studentRoll").textContent = data.roll || "N/A";
+        document.getElementById("studentDept").textContent = data.dept || "N/A";
+        document.getElementById("studentCGPA").textContent = data.cgpa ?? "N/A";
         document.getElementById("detailsBtn").href = `details.html?regNo=${roll}`;
 
-        const present = data.attendance.present;
-        const absent = data.attendance.absent;
-        const total = present + absent;
+        // ✅ Safe access to attendance
+        const attendance = data.attendance || {};
+        const present = attendance.present ?? 0;
+        const absent = attendance.absent ?? 0;
+        const total = attendance.total ?? (present + absent);
+
+        console.log("Attendance:", attendance);
 
         document.getElementById("presentDays").textContent = present;
         document.getElementById("absentDays").textContent = absent;
         document.getElementById("totalClasses").textContent = total;
 
+        // ✅ Mentor feedback
         if (data.mentorFeedback) {
           document.getElementById("mentorPerformance").textContent = data.mentorFeedback.performance ?? 'N/A';
           document.getElementById("mentorFeedback").textContent = data.mentorFeedback.feedback || 'No feedback provided.';
@@ -152,7 +162,7 @@
     }
 
     function renderCharts(data) {
-      const commonOptions = {
+      const options = {
         responsive: true,
         plugins: {
           legend: { display: false },
@@ -164,77 +174,79 @@
           }
         },
         elements: {
-          bar: {
-            borderRadius: 6,
-            borderSkipped: false
-          }
+          bar: { borderRadius: 6, borderSkipped: false }
         },
-        scales: {
-          y: { beginAtZero: true }
-        }
+        scales: { y: { beginAtZero: true } }
       };
 
       new Chart(document.getElementById("sgpaChart"), {
         type: "bar",
         data: {
-          labels: ["Sem 1", "Sem 2", "Sem 3"],
+          labels: ["Sem 1", "Sem 2", "Sem 3", "Sem 4", "Sem 5", "Sem 6"],
           datasets: [{
             label: "SGPA",
-            data: [data.sgpa.sem1, data.sgpa.sem2, data.sgpa.sem3],
-            backgroundColor: ["#6366f1", "#3b82f6", "#8b5cf6"],
+            data: [
+              data.sgpa?.sem1 ?? 0,
+              data.sgpa?.sem2 ?? 0,
+              data.sgpa?.sem3 ?? 0,
+              data.sgpa?.sem4 ?? 0,
+              data.sgpa?.sem5 ?? 0,
+              data.sgpa?.sem6 ?? 0
+            ],
+            backgroundColor: ["#6366f1", "#3b82f6", "#8b5cf6", "#4f46e5", "#818cf8", "#a5b4fc"],
             barThickness: 40
           }]
         },
-        options: {
-          ...commonOptions,
-          scales: { y: { beginAtZero: true, max: 10 } }
-        },
+        options: { ...options, scales: { y: { beginAtZero: true, max: 10 } } },
         plugins: [ChartDataLabels]
       });
 
-      const coreLabels = Object.keys(data.subjects.core);
-      const coreData = Object.values(data.subjects.core);
-      const coreColors = coreLabels.map((_, i) =>
-        ["#10b981", "#34d399", "#6ee7b7", "#a7f3d0", "#064e3b", "#14b8a6"][i % 6]
-      );
       new Chart(document.getElementById("coreChart"), {
         type: "bar",
         data: {
-          labels: coreLabels,
+          labels: Object.keys(data.subjects?.core || {}),
           datasets: [{
             label: "Core Marks",
-            data: coreData,
-            backgroundColor: coreColors,
+            data: Object.values(data.subjects?.core || {}),
+            backgroundColor: "#10b981",
             barThickness: 40
           }]
         },
-        options: {
-          ...commonOptions,
-          scales: { y: { beginAtZero: true, max: 100 } }
-        },
+        options,
         plugins: [ChartDataLabels]
       });
 
-      const progLabels = Object.keys(data.subjects.programming);
-      const progData = Object.values(data.subjects.programming);
-      const progColors = progLabels.map((_, i) =>
-        ["#f59e0b", "#fbbf24", "#fde68a", "#eab308", "#ca8a04", "#78350f"][i % 6]
-      );
       new Chart(document.getElementById("progChart"), {
         type: "bar",
         data: {
-          labels: progLabels,
+          labels: Object.keys(data.subjects?.programming || {}),
           datasets: [{
             label: "Programming Marks",
-            data: progData,
-            backgroundColor: progColors,
+            data: Object.values(data.subjects?.programming || {}),
+            backgroundColor: "#fbbf24",
             barThickness: 40
           }]
         },
-        options: {
-          ...commonOptions,
-          scales: { y: { beginAtZero: true, max: 100 } }
+        options,
+        plugins: [ChartDataLabels]
+      });
+
+      new Chart(document.getElementById("ciaChart"), {
+        type: "bar",
+        data: {
+          labels: ["CIA 1", "CIA 2", "CIA 3"],
+          datasets: [{
+            label: "CIA Marks",
+            data: [
+              data.cia?.cia1 ?? 0,
+              data.cia?.cia2 ?? 0,
+              data.cia?.cia3 ?? 0
+            ],
+            backgroundColor: ["#e879f9", "#f472b6", "#fda4af"],
+            barThickness: 40
+          }]
         },
+        options: { ...options, scales: { y: { beginAtZero: true, max: 50 } } },
         plugins: [ChartDataLabels]
       });
 
@@ -244,12 +256,15 @@
           labels: ["Present", "Absent"],
           datasets: [{
             label: "Attendance",
-            data: [data.attendance.present, data.attendance.absent],
+            data: [
+              data.attendance?.present ?? 0,
+              data.attendance?.absent ?? 0
+            ],
             backgroundColor: ["#22c55e", "#ef4444"],
             barThickness: 40
           }]
         },
-        options: commonOptions,
+        options,
         plugins: [ChartDataLabels]
       });
     }
