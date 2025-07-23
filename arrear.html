@@ -23,7 +23,6 @@
 
   <div id="studentList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
 
-  
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -47,19 +46,35 @@
     let students = [];
     let chartInstance = null;
 
+    function calculateArrearTotal(semArrears = {}) {
+      return Object.values(semArrears).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+    }
+
     async function loadStudents() {
       const querySnapshot = await getDocs(collection(db, "students"));
-      const all = querySnapshot.docs.map(doc => doc.data());
-      students = all.filter(s => s.arrears?.total > 0); 
+      const all = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        const total = calculateArrearTotal(data.arrears?.sem);
+        return {
+          ...data,
+          arrears: {
+            ...data.arrears,
+            total: total
+          }
+        };
+      });
 
+      students = all.filter(s => s.arrears?.total > 0);
       students.sort((a, b) => b.arrears.total - a.arrears.total);
+
       renderChart(students);
       renderList(students);
     }
 
     function renderChart(data) {
-      const labels = data.map(s => s.name);
-      const arrears = data.map(s => s.arrears?.total || 0);
+      const top15 = data.slice(0, 15);
+      const labels = top15.map(s => s.name);
+      const arrears = top15.map(s => s.arrears?.total || 0);
 
       const ctx = document.getElementById("arrearChart").getContext("2d");
 
@@ -72,7 +87,7 @@
           datasets: [{
             label: "Total Arrears",
             data: arrears,
-            backgroundColor: 'rgba(239, 68, 68, 0.8)', 
+            backgroundColor: 'rgba(239, 68, 68, 0.8)',
             borderRadius: 10,
             barThickness: 20
           }]
