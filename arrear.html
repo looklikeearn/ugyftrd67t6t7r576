@@ -1,57 +1,31 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Student Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Students with Arrears</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <style>
-    body { background-color: #0f172a; }
-  </style>
 </head>
-<body class="text-white font-sans">
-  <div class="max-w-4xl mx-auto p-6" id="pdfContent">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-indigo-300">Student Dashboard</h1>
-      <button id="downloadBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm">Download PDF</button>
-    </div>
+<body class="bg-gray-900 text-white min-h-screen px-4 py-6">
 
-    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
-      <h2 id="studentName" class="text-3xl font-extrabold text-indigo-400 mb-4"></h2>
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-gray-300 text-sm">
-        <p><strong>Roll No:</strong> <span id="studentRoll"></span></p>
-        <p><strong>Class:</strong> <span id="studentClass"></span></p>
-        <p><strong>CGPA:</strong> <span id="studentCGPA"></span></p>
-        <p><strong>Last Sem SGPA:</strong> <span id="studentSGPA"></span></p>
-      </div>
-    </div>
+  <h1 class="text-3xl font-bold mb-6 text-center text-red-400">Students with Arrears</h1>
 
-    
-    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
-      <h3 class="text-xl font-semibold text-green-300 mb-4">Last Semester Grades</h3>
-      <ul id="gradesList" class="list-disc list-inside text-gray-200 text-base space-y-1"></ul>
-    </div>
-
-    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
-      <h3 class="text-xl font-semibold text-yellow-300 mb-4">CIA 1 Marks</h3>
-      <ul id="cia1List" class="list-disc list-inside text-gray-200 text-base space-y-1"></ul>
-    </div>
-
-    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
-      <h3 class="text-xl font-semibold text-yellow-300 mb-4">CIA 2 Marks</h3>
-      <ul id="cia2List" class="list-disc list-inside text-gray-200 text-base space-y-1"></ul>
-    </div>
-
-    <div class="bg-gray-800 rounded-2xl p-6 shadow-lg">
-      <h3 class="text-xl font-semibold text-yellow-300 mb-4">CIA 3 Marks</h3>
-      <ul id="cia3List" class="list-disc list-inside text-gray-200 text-base space-y-1"></ul>
-    </div>
+  <div class="flex justify-center mb-6">
+    <input id="search" type="text" placeholder="Search by name, reg no, or arrears..." class="w-full max-w-xl px-4 py-2 rounded-lg text-black focus:outline-none">
   </div>
 
+  <div class="overflow-x-auto mb-10">
+    <canvas id="arrearChart" class="w-full"></canvas>
+  </div>
+
+  <div id="studentList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
@@ -59,101 +33,116 @@
       projectId: "test-d6f13",
       storageBucket: "test-d6f13.appspot.com",
       messagingSenderId: "1043978393185",
-      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20"
+      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20",
+      measurementId: "G-VLTFR2GXGS"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const roll = new URLSearchParams(window.location.search).get("roll");
 
-    if (!roll) {
-      alert("Roll number missing!");
-    } else {
-      loadStudent(roll);
+    const studentListEl = document.getElementById('studentList');
+    const searchInput = document.getElementById('search');
+    let students = [];
+    let chartInstance = null;
+
+    const arrearGrades = ['E', 'F']; 
+
+    function calculateArrears(subjects) {
+      if (!subjects) return 0;
+      return Object.values(subjects).filter(grade => arrearGrades.includes(grade)).length;
     }
 
-    async function loadStudent(roll) {
-      const studentsCol = collection(db, "students");
-      const snapshot = await getDocs(studentsCol);
-      let found = false;
+    async function loadStudents() {
+      const querySnapshot = await getDocs(collection(db, "students"));
+      students = [];
 
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data.roll == roll) {
-          found = true;
-          renderStudent(data);
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
+        const totalArrears = calculateArrears(data.subjects);
+        if (totalArrears > 0) {
+          students.push({
+            name: data.name,
+            roll: data.roll,
+            subjects: data.subjects,
+            totalArrears
+          });
         }
       });
 
-      if (!found) {
-        alert("❌ Student not found!");
-      }
+      students.sort((a, b) => b.totalArrears - a.totalArrears);
+      renderChart(students);
+      renderList(students);
     }
 
-    function renderStudent(data) {
-      document.getElementById("studentName").textContent = data.name || "N/A";
-      document.getElementById("studentRoll").textContent = data.roll || "N/A";
-      document.getElementById("studentClass").textContent = data.class || "N/A";
-      document.getElementById("studentCGPA").textContent = data.cgpa ?? "N/A";
-      document.getElementById("studentSGPA").textContent = data.sgpa ?? "N/A";
+    function renderChart(data) {
+      const top12 = data.slice(0, 12); 
+      const labels = top12.map(s => s.name);
+      const arrears = top12.map(s => s.totalArrears);
 
-      const gradesList = document.getElementById("gradesList");
-      gradesList.innerHTML = "";
-      if (data.subjects) {
-        Object.entries(data.subjects).forEach(([subject, grade]) => {
-          const li = document.createElement("li");
-          li.textContent = `${subject}: ${grade}`;
-          gradesList.appendChild(li);
-        });
-      } else {
-        gradesList.innerHTML = "<li>No grade data found.</li>";
-      }
+      const ctx = document.getElementById("arrearChart").getContext("2d");
+      if (chartInstance) chartInstance.destroy();
 
-      renderOrderedCIA("CIA I", "cia1List", data.ciaMarks);
-      renderOrderedCIA("CIA II", "cia2List", data.ciaMarks);
-      renderOrderedCIA("CIA III", "cia3List", data.ciaMarks);
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: "Total Arrears",
+            data: arrears,
+            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+            borderRadius: 10,
+            barThickness: 20
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            datalabels: {
+              color: '#fff',
+              anchor: 'end',
+              align: 'top',
+              font: { weight: 'bold' }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        },
+        plugins: [ChartDataLabels]
+      });
     }
 
-    function renderOrderedCIA(ciaLabel, listId, ciaMarks) {
-      const list = document.getElementById(listId);
-      list.innerHTML = "";
-
-      if (!ciaMarks) {
-        list.innerHTML = "<li>No CIA data found.</li>";
-        return;
-      }
-
-      let foundAny = false;
-
-      for (let i = 1; i <= 6; i++) {
-        const key = `${ciaLabel} - Course ${i}`;
-        const mark = ciaMarks[key];
-
-        if (mark !== undefined) {
-          foundAny = true;
-          const li = document.createElement("li");
-          li.textContent = `Course ${i}: ${mark}`;
-          list.appendChild(li);
-        }
-      }
-
-      if (!foundAny) {
-        list.innerHTML = "<li>No data found.</li>";
-      }
+    function renderList(data) {
+      studentListEl.innerHTML = '';
+      data.forEach(s => {
+        const card = document.createElement('div');
+        card.className = "bg-gray-800 p-4 rounded-lg hover:bg-red-600 transition cursor-pointer";
+        card.innerHTML = `
+          <h2 class="text-xl font-bold">${s.name}</h2>
+          <p>Reg No: ${s.roll}</p>
+          <p>Total Arrears: ${s.totalArrears}</p>
+        `;
+        card.onclick = () => {
+          window.location.href = `view.html?roll=${s.roll}`;
+        };
+        studentListEl.appendChild(card);
+      });
     }
 
-    document.getElementById("downloadBtn").addEventListener("click", () => {
-      const element = document.getElementById("pdfContent");
-      const opt = {
-        margin:       0.5,
-        filename:     'student-dashboard.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-      };
-      html2pdf().set(opt).from(element).save();
+    searchInput.addEventListener("input", () => {
+      const query = searchInput.value.toLowerCase();
+      const filtered = students.filter(s =>
+        s.name.toLowerCase().includes(query) ||
+        s.roll.toString().toLowerCase().includes(query) ||
+        s.totalArrears.toString().includes(query)
+      );
+      renderList(filtered);
     });
+
+    loadStudents();
   </script>
 </body>
 </html>
