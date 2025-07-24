@@ -20,12 +20,13 @@
     <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
       <h2 id="studentName" class="text-3xl font-extrabold text-indigo-400 mb-4"></h2>
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-gray-300 text-sm">
-        <p><strong>Reg No:</strong> <span id="studentRoll"></span></p>
+        <p><strong>Roll No:</strong> <span id="studentRoll"></span></p>
         <p><strong>Class:</strong> <span id="studentClass"></span></p>
         <p><strong>CGPA:</strong> <span id="studentCGPA"></span></p>
         <p><strong>Last Sem SGPA:</strong> <span id="studentSGPA"></span></p>
       </div>
     </div>
+
 
     
     <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
@@ -49,111 +50,136 @@
     </div>
   </div>
 
+  <div id="mentorFeedbackSection" class="bg-gray-800 rounded-2xl p-6 mt-6 shadow-lg">
+  <h3 class="text-xl font-semibold text-pink-400 mb-4">Mentor Feedback</h3>
+  <div id="mentorFeedbackContent" class="text-gray-200 text-base space-y-2">
+    <p id="mentorFeedbackText">Loading...</p>
+  </div>
+</div>
+
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
-      authDomain: "test-d6f13.firebaseapp.com",
-      projectId: "test-d6f13",
-      storageBucket: "test-d6f13.appspot.com",
-      messagingSenderId: "1043978393185",
-      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
+    authDomain: "test-d6f13.firebaseapp.com",
+    projectId: "test-d6f13",
+    storageBucket: "test-d6f13.appspot.com",
+    messagingSenderId: "1043978393185",
+    appId: "1:1043978393185:web:a40e50c013d7869b8cfc20"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const roll = new URLSearchParams(window.location.search).get("roll");
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const roll = new URLSearchParams(window.location.search).get("roll");
 
-    if (!roll) {
-      alert("Roll number missing!");
-    } else {
-      loadStudent(roll);
-    }
+  if (!roll) {
+    alert("Roll number missing!");
+  } else {
+    loadStudent(roll);
+  }
 
-    async function loadStudent(roll) {
-      const studentsCol = collection(db, "students");
-      const snapshot = await getDocs(studentsCol);
-      let found = false;
+  async function loadStudent(roll) {
+    const studentsCol = collection(db, "students");
+    const snapshot = await getDocs(studentsCol);
+    let found = false;
 
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data.roll == roll) {
-          found = true;
-          renderStudent(data);
-        }
-      });
-
-      if (!found) {
-        alert("❌ Student not found!");
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.roll == roll) {
+        found = true;
+        renderStudent(data);
       }
-    }
-
-    function renderStudent(data) {
-      document.getElementById("studentName").textContent = data.name || "N/A";
-      document.getElementById("studentRoll").textContent = data.roll || "N/A";
-      document.getElementById("studentClass").textContent = data.class || "N/A";
-      document.getElementById("studentCGPA").textContent = data.cgpa ?? "N/A";
-      document.getElementById("studentSGPA").textContent = data.sgpa ?? "N/A";
-
-      const gradesList = document.getElementById("gradesList");
-      gradesList.innerHTML = "";
-      if (data.subjects) {
-        Object.entries(data.subjects).forEach(([subject, grade]) => {
-          const li = document.createElement("li");
-          li.textContent = `${subject}: ${grade}`;
-          gradesList.appendChild(li);
-        });
-      } else {
-        gradesList.innerHTML = "<li>No grade data found.</li>";
-      }
-
-      renderOrderedCIA("CIA I", "cia1List", data.ciaMarks);
-      renderOrderedCIA("CIA II", "cia2List", data.ciaMarks);
-      renderOrderedCIA("CIA III", "cia3List", data.ciaMarks);
-    }
-
-    function renderOrderedCIA(ciaLabel, listId, ciaMarks) {
-      const list = document.getElementById(listId);
-      list.innerHTML = "";
-
-      if (!ciaMarks) {
-        list.innerHTML = "<li>No CIA data found.</li>";
-        return;
-      }
-
-      let foundAny = false;
-
-      for (let i = 1; i <= 6; i++) {
-        const key = `${ciaLabel} - Course ${i}`;
-        const mark = ciaMarks[key];
-
-        if (mark !== undefined) {
-          foundAny = true;
-          const li = document.createElement("li");
-          li.textContent = `Course ${i}: ${mark}`;
-          list.appendChild(li);
-        }
-      }
-
-      if (!foundAny) {
-        list.innerHTML = "<li>No data found.</li>";
-      }
-    }
-
-    document.getElementById("downloadBtn").addEventListener("click", () => {
-      const element = document.getElementById("pdfContent");
-      const opt = {
-        margin:       0.5,
-        filename:     'student-dashboard.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-      };
-      html2pdf().set(opt).from(element).save();
     });
-  </script>
+
+    if (!found) {
+      alert("❌ Student not found!");
+    }
+  }
+
+  function renderStudent(data) {
+    document.getElementById("studentName").textContent = data.name || "N/A";
+    document.getElementById("studentRoll").textContent = data.roll || "N/A";
+    document.getElementById("studentClass").textContent = data.class || "N/A";
+    document.getElementById("studentCGPA").textContent = data.cgpa ?? "N/A";
+    document.getElementById("studentSGPA").textContent = data.sgpa ?? "N/A";
+
+    const gradesList = document.getElementById("gradesList");
+    gradesList.innerHTML = "";
+    if (data.subjects) {
+      Object.entries(data.subjects).forEach(([subject, grade]) => {
+        const li = document.createElement("li");
+        li.textContent = `${subject}: ${grade}`;
+        gradesList.appendChild(li);
+      });
+    } else {
+      gradesList.innerHTML = "<li>No grade data found.</li>";
+    }
+
+    renderOrderedCIA("CIA I", "cia1List", data.ciaMarks);
+    renderOrderedCIA("CIA II", "cia2List", data.ciaMarks);
+    renderOrderedCIA("CIA III", "cia3List", data.ciaMarks);
+
+    renderMentorFeedback(data.mentorFeedback);
+  }
+
+  function renderOrderedCIA(ciaLabel, listId, ciaMarks) {
+    const list = document.getElementById(listId);
+    list.innerHTML = "";
+
+    if (!ciaMarks) {
+      list.innerHTML = "<li>No CIA data found.</li>";
+      return;
+    }
+
+    let foundAny = false;
+
+    for (let i = 1; i <= 6; i++) {
+      const key = `${ciaLabel} - Course ${i}`;
+      const mark = ciaMarks[key];
+
+      if (mark !== undefined) {
+        foundAny = true;
+        const li = document.createElement("li");
+        li.textContent = `Course ${i}: ${mark}`;
+        list.appendChild(li);
+      }
+    }
+
+    if (!foundAny) {
+      list.innerHTML = "<li>No data found.</li>";
+    }
+  }
+
+  function renderMentorFeedback(feedback) {
+    const section = document.getElementById("mentorFeedbackContent");
+
+    if (!feedback || typeof feedback !== "object") {
+      section.innerHTML = "<p id='mentorFeedbackText'>No feedback now.</p>";
+      return;
+    }
+
+    section.innerHTML = `
+      <p><strong>Performance:</strong> ${feedback.performance ?? "N/A"}%</p>
+      <p><strong>Feedback:</strong> ${feedback.feedback || "No comments."}</p>
+      <p><strong>Placement Suggestion:</strong> ${feedback.placementImprovement || "N/A"}</p>
+    `;
+  }
+
+  document.getElementById("downloadBtn").addEventListener("click", () => {
+    const element = document.getElementById("pdfContent");
+    const opt = {
+      margin: 0.5,
+      filename: 'student-dashboard.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+    html2pdf().set(opt).from(element).save();
+  });
+</script>
+
 </body>
 </html>
