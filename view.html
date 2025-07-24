@@ -4,107 +4,51 @@
   <meta charset="UTF-8" />
   <title>Student Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
   <style>
-    body {
-      background-color: #0f172a;
-    }
-    canvas {
-      background: #f9fafb;
-      border-radius: 12px;
-      padding: 10px;
-    }
+    body { background-color: #0f172a; }
   </style>
 </head>
 <body class="text-white font-sans">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6" id="reportContent">
-    <div class="mb-6 flex justify-between items-center">
-      <h1 class="text-xl sm:text-2xl font-bold text-indigo-300">Student Dashboard</h1>
-      <button onclick="downloadPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm shadow-lg">
-        Download PDF
-      </button>
+  <div class="max-w-4xl mx-auto p-6">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-indigo-300">Student Dashboard</h1>
+      <a id="detailsBtn" href="#" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm">View Details</a>
     </div>
 
-    <div class="text-center mt-10">
-      <a id="detailsBtn" href="#" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-6 py-3 rounded-xl shadow-md text-sm sm:text-base">
-        View Full Details (Pie Chart)
-      </a>
-    </div>
-
-    <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg mb-8 mt-6">
-      <h2 id="studentName" class="text-3xl sm:text-4xl font-extrabold text-indigo-400 mb-4"></h2>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-gray-300 text-sm sm:text-base">
-        <p><strong>Reg No:</strong> <span id="studentRoll"></span></p>
-        <p><strong>Department:</strong> <span id="studentDept"></span></p>
+    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
+      <h2 id="studentName" class="text-3xl font-extrabold text-indigo-400 mb-4"></h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-gray-300 text-sm">
+        <p><strong>Roll No:</strong> <span id="studentRoll"></span></p>
+        <p><strong>Class:</strong> <span id="studentClass"></span></p>
         <p><strong>CGPA:</strong> <span id="studentCGPA"></span></p>
       </div>
     </div>
 
-    <div class="space-y-8">
-      <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
-        <h3 class="text-xl sm:text-2xl font-semibold text-indigo-300 mb-4">SGPA (Semesters)</h3>
-        <canvas id="sgpaChart" height="100"></canvas>
-      </div>
+    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
+      <h3 class="text-xl font-semibold text-green-300 mb-4">Last Semester Grades</h3>
+      <ul id="gradesList" class="list-disc list-inside text-gray-200 text-base space-y-1"></ul>
+    </div>
 
-      <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
-        <h3 class="text-xl sm:text-2xl font-semibold text-green-300 mb-4">Core Subject Marks</h3>
-        <canvas id="coreChart" height="100"></canvas>
-      </div>
+    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
+      <h3 class="text-xl font-semibold text-yellow-300 mb-4">CIA 1 Marks</h3>
+      <ul id="cia1List" class="list-disc list-inside text-gray-200 text-base space-y-1"></ul>
+    </div>
 
-      <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
-        <h3 class="text-xl sm:text-2xl font-semibold text-yellow-300 mb-4">Programming Subject Marks</h3>
-        <canvas id="progChart" height="100"></canvas>
-      </div>
+    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
+      <h3 class="text-xl font-semibold text-yellow-300 mb-4">CIA 2 Marks</h3>
+      <ul id="cia2List" class="list-disc list-inside text-gray-200 text-base space-y-1"></ul>
+    </div>
 
-      <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
-        <h3 class="text-xl sm:text-2xl font-semibold text-purple-300 mb-4">CIA Marks</h3>
-        <canvas id="ciaChart" height="100"></canvas>
-      </div>
-
-      <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
-        <h3 class="text-xl sm:text-2xl font-semibold text-pink-300 mb-4">Attendance</h3>
-        <canvas id="attendanceChart" height="100"></canvas>
-        <div class="mt-4 text-gray-300 text-sm sm:text-base space-y-1">
-          <p><strong>Total Classes:</strong> <span id="totalClasses"></span></p>
-          <p><strong>Present:</strong> <span id="presentDays"></span></p>
-          <p><strong>Absent:</strong> <span id="absentDays"></span></p>
-        </div>
-      </div>
-
-      <div class="bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg">
-        <h3 class="text-xl sm:text-2xl font-semibold text-cyan-300 mb-4">🧑‍🏫 Mentor Feedback</h3>
-        <div class="text-gray-300 text-sm sm:text-base space-y-2">
-          <p><strong>Performance Rating:</strong> <span id="mentorPerformance">N/A</span>%</p>
-          <p><strong>Feedback:</strong> <span id="mentorFeedback">No feedback provided.</span></p>
-          <p><strong>Placement Improvement:</strong> <span id="mentorPlacement">None</span></p>
-        </div>
-      </div>
+    <div class="bg-gray-800 rounded-2xl p-6 shadow-lg">
+      <h3 class="text-xl font-semibold text-yellow-300 mb-4">CIA 3 Marks</h3>
+      <ul id="cia3List" class="list-disc list-inside text-gray-200 text-base space-y-1"></ul>
     </div>
   </div>
 
-  <script>
-    async function downloadPDF() {
-      const { jsPDF } = window.jspdf;
-      const content = document.getElementById("reportContent");
-      const canvas = await html2canvas(content, { scale: 2 });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save("student-report.pdf");
-    }
-  </script>
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
@@ -112,164 +56,88 @@
       projectId: "test-d6f13",
       storageBucket: "test-d6f13.appspot.com",
       messagingSenderId: "1043978393185",
-      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20",
-      measurementId: "G-VLTFR2GXGS"
+      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const urlParams = new URLSearchParams(window.location.search);
-    const roll = urlParams.get("roll");
+    const roll = new URLSearchParams(window.location.search).get("roll");
 
-    if (!roll) alert("No roll number provided.");
+    if (!roll) {
+      alert("Roll number missing!");
+    } else {
+      loadStudent(roll);
+    }
 
-    async function loadStudentData() {
-      const docRef = doc(db, "students", roll);
-      const docSnap = await getDoc(docRef);
+    async function loadStudent(roll) {
+      const studentsCol = collection(db, "students");
+      const snapshot = await getDocs(studentsCol);
+      let found = false;
 
-      if (docSnap.exists()) {
+      snapshot.forEach(docSnap => {
         const data = docSnap.data();
-
-        document.getElementById("studentName").textContent = data.name || "N/A";
-        document.getElementById("studentRoll").textContent = data.roll || "N/A";
-        document.getElementById("studentDept").textContent = data.dept || "N/A";
-        document.getElementById("studentCGPA").textContent = data.cgpa ?? "N/A";
-        document.getElementById("detailsBtn").href = `details.html?regNo=${roll}`;
-
-        // ✅ Safe access to attendance
-        const attendance = data.attendance || {};
-        const present = attendance.present ?? 0;
-        const absent = attendance.absent ?? 0;
-        const total = attendance.total ?? (present + absent);
-
-        console.log("Attendance:", attendance);
-
-        document.getElementById("presentDays").textContent = present;
-        document.getElementById("absentDays").textContent = absent;
-        document.getElementById("totalClasses").textContent = total;
-
-        // ✅ Mentor feedback
-        if (data.mentorFeedback) {
-          document.getElementById("mentorPerformance").textContent = data.mentorFeedback.performance ?? 'N/A';
-          document.getElementById("mentorFeedback").textContent = data.mentorFeedback.feedback || 'No feedback provided.';
-          document.getElementById("mentorPlacement").textContent = data.mentorFeedback.placementImprovement || 'None';
+        if (data.roll == roll) {
+          found = true;
+          renderStudent(data);
         }
+      });
 
-        renderCharts(data);
-      } else {
-        alert("Student not found!");
+      if (!found) {
+        alert("❌ Student not found!");
       }
     }
 
-    function renderCharts(data) {
-      const options = {
-        responsive: true,
-        plugins: {
-          legend: { display: false },
-          datalabels: {
-            anchor: 'end',
-            align: 'end',
-            color: '#1e293b',
-            font: { weight: 'bold' }
-          }
-        },
-        elements: {
-          bar: { borderRadius: 6, borderSkipped: false }
-        },
-        scales: { y: { beginAtZero: true } }
-      };
+    function renderStudent(data) {
+      document.getElementById("studentName").textContent = data.name || "N/A";
+      document.getElementById("studentRoll").textContent = data.roll || "N/A";
+      document.getElementById("studentClass").textContent = data.class || "N/A";
+      document.getElementById("studentCGPA").textContent = data.cgpa ?? "N/A";
+      document.getElementById("detailsBtn").href = `details.html?regNo=${data.roll}`;
 
-      new Chart(document.getElementById("sgpaChart"), {
-        type: "bar",
-        data: {
-          labels: ["Sem 1", "Sem 2", "Sem 3", "Sem 4", "Sem 5", "Sem 6"],
-          datasets: [{
-            label: "SGPA",
-            data: [
-              data.sgpa?.sem1 ?? 0,
-              data.sgpa?.sem2 ?? 0,
-              data.sgpa?.sem3 ?? 0,
-              data.sgpa?.sem4 ?? 0,
-              data.sgpa?.sem5 ?? 0,
-              data.sgpa?.sem6 ?? 0
-            ],
-            backgroundColor: ["#6366f1", "#3b82f6", "#8b5cf6", "#4f46e5", "#818cf8", "#a5b4fc"],
-            barThickness: 40
-          }]
-        },
-        options: { ...options, scales: { y: { beginAtZero: true, max: 10 } } },
-        plugins: [ChartDataLabels]
-      });
+      const gradesList = document.getElementById("gradesList");
+      gradesList.innerHTML = "";
+      if (data.subjects) {
+        Object.entries(data.subjects).forEach(([subject, grade]) => {
+          const li = document.createElement("li");
+          li.textContent = `${subject}: ${grade}`;
+          gradesList.appendChild(li);
+        });
+      } else {
+        gradesList.innerHTML = "<li>No grade data found.</li>";
+      }
 
-      new Chart(document.getElementById("coreChart"), {
-        type: "bar",
-        data: {
-          labels: Object.keys(data.subjects?.core || {}),
-          datasets: [{
-            label: "Core Marks",
-            data: Object.values(data.subjects?.core || {}),
-            backgroundColor: "#10b981",
-            barThickness: 40
-          }]
-        },
-        options,
-        plugins: [ChartDataLabels]
-      });
-
-      new Chart(document.getElementById("progChart"), {
-        type: "bar",
-        data: {
-          labels: Object.keys(data.subjects?.programming || {}),
-          datasets: [{
-            label: "Programming Marks",
-            data: Object.values(data.subjects?.programming || {}),
-            backgroundColor: "#fbbf24",
-            barThickness: 40
-          }]
-        },
-        options,
-        plugins: [ChartDataLabels]
-      });
-
-      new Chart(document.getElementById("ciaChart"), {
-        type: "bar",
-        data: {
-          labels: ["CIA 1", "CIA 2", "CIA 3"],
-          datasets: [{
-            label: "CIA Marks",
-            data: [
-              data.cia?.cia1 ?? 0,
-              data.cia?.cia2 ?? 0,
-              data.cia?.cia3 ?? 0
-            ],
-            backgroundColor: ["#e879f9", "#f472b6", "#fda4af"],
-            barThickness: 40
-          }]
-        },
-        options: { ...options, scales: { y: { beginAtZero: true, max: 50 } } },
-        plugins: [ChartDataLabels]
-      });
-
-      new Chart(document.getElementById("attendanceChart"), {
-        type: "bar",
-        data: {
-          labels: ["Present", "Absent"],
-          datasets: [{
-            label: "Attendance",
-            data: [
-              data.attendance?.present ?? 0,
-              data.attendance?.absent ?? 0
-            ],
-            backgroundColor: ["#22c55e", "#ef4444"],
-            barThickness: 40
-          }]
-        },
-        options,
-        plugins: [ChartDataLabels]
-      });
+      renderOrderedCIA("CIA I", "cia1List", data.ciaMarks);
+      renderOrderedCIA("CIA II", "cia2List", data.ciaMarks);
+      renderOrderedCIA("CIA III", "cia3List", data.ciaMarks);
     }
 
-    loadStudentData();
+    function renderOrderedCIA(ciaLabel, listId, ciaMarks) {
+      const list = document.getElementById(listId);
+      list.innerHTML = "";
+
+      if (!ciaMarks) {
+        list.innerHTML = "<li>No CIA data found.</li>";
+        return;
+      }
+
+      let foundAny = false;
+
+      for (let i = 1; i <= 6; i++) {
+        const key = `${ciaLabel} - Course ${i}`;
+        const mark = ciaMarks[key];
+
+        if (mark !== undefined) {
+          foundAny = true;
+          const li = document.createElement("li");
+          li.textContent = `Course ${i}: ${mark}`;
+          list.appendChild(li);
+        }
+      }
+
+      if (!foundAny) {
+        list.innerHTML = "<li>No data found.</li>";
+      }
+    }
   </script>
 </body>
 </html>
