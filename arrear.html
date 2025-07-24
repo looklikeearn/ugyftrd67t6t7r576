@@ -42,48 +42,50 @@
 
     const studentListEl = document.getElementById('studentList');
     const searchInput = document.getElementById('search');
-
     let students = [];
     let chartInstance = null;
 
-    function calculateArrearTotal(semArrears = {}) {
-      return Object.values(semArrears).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+    const arrearGrades = ['E', 'F']; 
+
+    function calculateArrears(subjects) {
+      if (!subjects) return 0;
+      return Object.values(subjects).filter(grade => arrearGrades.includes(grade)).length;
     }
 
     async function loadStudents() {
       const querySnapshot = await getDocs(collection(db, "students"));
-      const all = querySnapshot.docs.map(doc => {
+      students = [];
+
+      querySnapshot.forEach(doc => {
         const data = doc.data();
-        const total = calculateArrearTotal(data.arrears?.sem);
-        return {
-          ...data,
-          arrears: {
-            ...data.arrears,
-            total: total
-          }
-        };
+        const totalArrears = calculateArrears(data.subjects);
+        if (totalArrears > 0) {
+          students.push({
+            name: data.name,
+            roll: data.roll,
+            subjects: data.subjects,
+            totalArrears
+          });
+        }
       });
 
-      students = all.filter(s => s.arrears?.total > 0);
-      students.sort((a, b) => b.arrears.total - a.arrears.total);
-
+      students.sort((a, b) => b.totalArrears - a.totalArrears);
       renderChart(students);
       renderList(students);
     }
 
     function renderChart(data) {
-      const top15 = data.slice(0, 15);
-      const labels = top15.map(s => s.name);
-      const arrears = top15.map(s => s.arrears?.total || 0);
+      const top12 = data.slice(0, 12); 
+      const labels = top12.map(s => s.name);
+      const arrears = top12.map(s => s.totalArrears);
 
       const ctx = document.getElementById("arrearChart").getContext("2d");
-
       if (chartInstance) chartInstance.destroy();
 
       chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: labels,
+          labels,
           datasets: [{
             label: "Total Arrears",
             data: arrears,
@@ -121,7 +123,7 @@
         card.innerHTML = `
           <h2 class="text-xl font-bold">${s.name}</h2>
           <p>Reg No: ${s.roll}</p>
-          <p>Total Arrears: ${s.arrears?.total || 0}</p>
+          <p>Total Arrears: ${s.totalArrears}</p>
         `;
         card.onclick = () => {
           window.location.href = `view.html?roll=${s.roll}`;
@@ -134,8 +136,8 @@
       const query = searchInput.value.toLowerCase();
       const filtered = students.filter(s =>
         s.name.toLowerCase().includes(query) ||
-        s.roll.toLowerCase().includes(query) ||
-        (s.arrears?.total?.toString() || "").includes(query)
+        s.roll.toString().toLowerCase().includes(query) ||
+        s.totalArrears.toString().includes(query)
       );
       renderList(filtered);
     });
