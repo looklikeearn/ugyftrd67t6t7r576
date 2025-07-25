@@ -5,20 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Students with Arrears</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen px-4 py-6">
 
   <h1 class="text-3xl font-bold mb-6 text-center text-red-400">Students with Arrears</h1>
 
   <div class="flex justify-center mb-6">
-    <input id="search" type="text" placeholder="Search by name, reg no, or arrears..." class="w-full max-w-xl px-4 py-2 rounded-lg text-black focus:outline-none">
+    <input id="search" type="text" placeholder="Search by name, reg no, or arrears..." class="w-full max-w-xl px-4 py-2 rounded-lg text-black focus:outline-none text-sm">
   </div>
 
   <div class="overflow-x-auto mb-10">
-    <canvas id="arrearChart" class="w-full"></canvas>
+    <canvas id="arrearChart" class="w-full" style="max-height: 300px;"></canvas>
   </div>
 
   <div id="studentList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
@@ -40,16 +40,16 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const studentListEl = document.getElementById('studentList');
-    const searchInput = document.getElementById('search');
+    const searchInput = document.getElementById("search");
+    const studentListEl = document.getElementById("studentList");
+
+    const arrearGrades = ['E', 'F'];
     let students = [];
     let chartInstance = null;
 
-    const arrearGrades = ['E', 'F']; 
-
     function calculateArrears(subjects) {
       if (!subjects) return 0;
-      return Object.values(subjects).filter(grade => arrearGrades.includes(grade)).length;
+      return Object.values(subjects).filter(g => arrearGrades.includes(g)).length;
     }
 
     async function loadStudents() {
@@ -75,7 +75,7 @@
     }
 
     function renderChart(data) {
-      const top12 = data.slice(0, 12); 
+      const top12 = data.slice(0, 12);
       const labels = top12.map(s => s.name);
       const arrears = top12.map(s => s.totalArrears);
 
@@ -96,18 +96,23 @@
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
             datalabels: {
               color: '#fff',
               anchor: 'end',
               align: 'top',
-              font: { weight: 'bold' }
+              font: { weight: 'bold', size: 10 }
             }
           },
           scales: {
             y: {
-              beginAtZero: true
+              beginAtZero: true,
+              ticks: { color: '#ccc', stepSize: 1 }
+            },
+            x: {
+              ticks: { color: '#ccc', autoSkip: false, maxRotation: 45, font: { size: 10 } }
             }
           }
         },
@@ -121,7 +126,7 @@
         const card = document.createElement('div');
         card.className = "bg-gray-800 p-4 rounded-lg hover:bg-red-600 transition cursor-pointer";
         card.innerHTML = `
-          <h2 class="text-xl font-bold">${s.name}</h2>
+          <h2 class="text-lg font-bold">${s.name}</h2>
           <p>Reg No: ${s.roll}</p>
           <p>Total Arrears: ${s.totalArrears}</p>
         `;
@@ -135,8 +140,8 @@
     searchInput.addEventListener("input", () => {
       const query = searchInput.value.toLowerCase();
       const filtered = students.filter(s =>
-        s.name.toLowerCase().includes(query) ||
-        s.roll.toString().toLowerCase().includes(query) ||
+        (s.name || '').toLowerCase().includes(query) ||
+        (s.roll || '').toString().toLowerCase().includes(query) ||
         s.totalArrears.toString().includes(query)
       );
       renderList(filtered);
