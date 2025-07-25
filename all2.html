@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student CGPA Chart</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+</head>
+<body class="bg-gray-900 text-white px-4 py-6 min-h-screen">
+
+  <h1 class="text-2xl font-bold mb-4 text-center text-green-400">Virtual View</h1>
+
+  <div class="mb-4">
+    <input id="search" type="text" placeholder="Search name, reg no, or CGPA..." class="w-full px-4 py-2 rounded text-black focus:outline-none text-sm" />
+  </div>
+
+  <div class="overflow-x-auto mb-6">
+    <canvas id="cgpaChart" class="w-full max-w-full"></canvas>
+  </div>
+
+  <div id="studentList" class="grid grid-cols-1 gap-4"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
+      authDomain: "test-d6f13.firebaseapp.com",
+      projectId: "test-d6f13",
+      storageBucket: "test-d6f13.appspot.com",
+      messagingSenderId: "1043978393185",
+      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20",
+      measurementId: "G-VLTFR2GXGS"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const searchInput = document.getElementById('search');
+    const studentListEl = document.getElementById('studentList');
+    let students = [];
+    let cgpaChartInstance = null;
+
+    async function loadStudents() {
+      const querySnapshot = await getDocs(collection(db, "students"));
+      students = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      students.sort((a, b) => parseFloat(b.cgpa) - parseFloat(a.cgpa));
+
+      renderChart(students);
+      renderList(students);
+    }
+
+    function renderChart(data) {
+      const top14 = data.slice(0, 10);
+      const labels = top14.map(s => s.name);
+      const cgpas = top14.map(s => parseFloat(s.cgpa));
+
+      const ctx = document.getElementById("cgpaChart").getContext("2d");
+
+      if (cgpaChartInstance) {
+        cgpaChartInstance.destroy();
+      }
+
+      cgpaChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "CGPA",
+            data: cgpas,
+            backgroundColor: 'rgba(34, 197, 94, 0.8)',
+            borderRadius: 8,
+            barThickness: 18
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            datalabels: {
+              color: '#ffffff',
+              anchor: 'end',
+              align: 'top',
+              font: { size: 10, weight: 'bold' }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 10,
+              ticks: { color: '#ccc', stepSize: 1 }
+            },
+            x: {
+              ticks: { color: '#ccc', autoSkip: false, maxRotation: 45, font: { size: 10 } }
+            }
+          }
+        },
+        plugins: [ChartDataLabels]
+      });
+    }
+
+    function renderList(data) {
+      studentListEl.innerHTML = '';
+      data.forEach(s => {
+        const card = document.createElement('div');
+        card.className = "bg-gray-800 p-3 rounded hover:bg-green-700 transition text-sm cursor-pointer";
+        card.innerHTML = `
+          <h2 class="font-bold text-base">${s.name}</h2>
+          <p>Reg No: ${s.id}</p>
+          <p>CGPA: ${s.cgpa}</p>
+        `;
+        card.onclick = () => {
+          window.location.href = `virtual.html?roll=${s.roll}`;
+        };
+        studentListEl.appendChild(card);
+      });
+    }
+
+    searchInput.addEventListener("input", () => {
+      const query = searchInput.value.toLowerCase();
+      const filtered = students.filter(s =>
+        (s.name || '').toLowerCase().includes(query) ||
+        (s.id || '').toLowerCase().includes(query) ||
+        (s.cgpa || '').toString().toLowerCase().includes(query)
+      );
+      renderList(filtered);
+    });
+
+    loadStudents();
+  </script>
+</body>
+</html>
