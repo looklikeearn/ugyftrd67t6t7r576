@@ -177,7 +177,19 @@
       jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
-    html2pdf().set(opt).from(element).save();
+    html2pdf().set(opt).from(element).outputPdf('blob').then(blob => {
+  const reader = new FileReader();
+  reader.onloadend = function () {
+    const base64data = reader.result.split(',')[1];
+    if (window.AndroidDownloader) {
+      window.AndroidDownloader.saveBase64Pdf(base64data);
+    } else {
+      alert("Android download interface not found.");
+    }
+  };
+  reader.readAsDataURL(blob);
+});
+
   });
 </script>
 
