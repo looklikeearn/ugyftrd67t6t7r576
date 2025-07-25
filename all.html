@@ -6,7 +6,6 @@
   <title>Student CGPA Chart</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
@@ -48,7 +47,7 @@
 
     async function loadStudents() {
       const querySnapshot = await getDocs(collection(db, "students"));
-      students = querySnapshot.docs.map(doc => doc.data());
+      students = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       students.sort((a, b) => parseFloat(b.cgpa) - parseFloat(a.cgpa));
 
@@ -113,11 +112,11 @@
         card.className = "bg-gray-800 p-3 rounded hover:bg-green-700 transition text-sm cursor-pointer";
         card.innerHTML = `
           <h2 class="font-bold text-base">${s.name}</h2>
-          <p>Reg No: ${s.roll}</p>
+          <p>Reg No: ${s.id}</p>
           <p>CGPA: ${s.cgpa}</p>
         `;
         card.onclick = () => {
-          window.location.href = `view.html?roll=${s.roll}`;
+          window.location.href = `view.html?roll=${s.id}`;
         };
         studentListEl.appendChild(card);
       });
@@ -126,9 +125,9 @@
     searchInput.addEventListener("input", () => {
       const query = searchInput.value.toLowerCase();
       const filtered = students.filter(s =>
-        s.name.toLowerCase().includes(query) ||
-        s.roll.toLowerCase().includes(query) ||
-        s.cgpa.toString().includes(query)
+        (s.name || '').toLowerCase().includes(query) ||
+        (s.id || '').toLowerCase().includes(query) ||
+        (s.cgpa || '').toString().toLowerCase().includes(query)
       );
       renderList(filtered);
     });
