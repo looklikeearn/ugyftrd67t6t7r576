@@ -2,29 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>📄 Bulk Student Upload</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-</head>
-<body class="bg-gradient-to-b from-indigo-900 to-black text-white font-sans min-h-screen flex items-center justify-center">
-  <div class="w-full max-w-md mx-auto bg-gray-900 bg-opacity-90 px-6 py-8 rounded-2xl shadow-2xl space-y-6">
-    <h2 class="text-2xl font-bold text-center text-yellow-400">📥 Upload Excel File</h2>
-
-    <input type="file" id="excelFile" accept=".xlsx, .xls" class="w-full bg-gray-800 rounded-xl p-3 text-sm text-white focus:ring-2 focus:ring-green-400">
-
-    <button id="uploadBtn" class="w-full py-3 bg-green-500 rounded-xl font-bold text-black hover:bg-green-600 transition">⬆️ Upload & Save</button>
-
-    <div id="progressBar" class="w-full bg-gray-700 rounded-full h-3 mt-4 hidden">
-      <div id="progressFill" class="bg-green-400 h-3 rounded-full transition-all duration-300 ease-in-out" style="width: 0%"></div>
-    </div>
-
-    <p id="status" class="text-center font-medium hidden mt-2">✅ Uploaded Successfully!</p>
-  </div>
-
+  <title>Excel Upload</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
@@ -39,80 +21,126 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const excelInput = document.getElementById('excelFile');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const statusText = document.getElementById('status');
-    const progressBar = document.getElementById('progressBar');
-    const progressFill = document.getElementById('progressFill');
+    window.uploadExcel = async () => {
+      const fileInput = document.getElementById("file");
+      const uploadBtn = document.getElementById("uploadBtn");
+      const status = document.getElementById("status");
+      const file = fileInput.files[0];
 
-    uploadBtn.addEventListener('click', async () => {
-      if (!excelInput.files.length) return alert("Please select an Excel file");
+      if (!file) {
+        status.innerHTML = " Please select a file first.";
+        return;
+      }
 
-      const file = excelInput.files[0];
+      uploadBtn.disabled = true;
+      uploadBtn.style.display = "none";
+      status.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Uploading to Firebase...`;
+
       const reader = new FileReader();
       reader.onload = async (e) => {
         const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const students = XLSX.utils.sheet_to_json(sheet);
+        const workbook = XLSX.read(data, { type: "array" });
 
-        progressBar.classList.remove('hidden');
-        progressFill.style.width = '0%';
+        let totalStudents = 0;
 
-        for (let i = 0; i < students.length; i++) {
-          const row = students[i];
-          const roll = row["Roll"] || row["roll"] || row["Roll No"];
-          if (!roll) continue;
+        for (const sheetName of workbook.SheetNames) {
+          const className = sheetName.trim().replace(/\s+/g, "-");
+          const worksheet = workbook.Sheets[sheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet);
 
-          await setDoc(doc(db, "students", String(roll)), {
-            dept: row["Dept"] || row["Department"] || "",
-            name: row["Name"] || "",
-            roll: String(roll),
-            cgpa: parseFloat(row["CGPA"] || 0),
-            cia: {
-              cia1: parseInt(row["CIA1"] || 0),
-              cia2: parseInt(row["CIA2"] || 0),
-              cia3: parseInt(row["CIA3"] || 0)
-            },
-            sgpa: {
-              sem1: parseFloat(row["SGPA1"] || 0),
-              sem2: parseFloat(row["SGPA2"] || 0),
-              sem3: parseFloat(row["SGPA3"] || 0)
-            },
-            arrears: {
-              total: parseInt(row["Total Arrears"] || 0),
-              sem: {
-                sem1: parseInt(row["Arrear1"] || 0),
-                sem2: parseInt(row["Arrear2"] || 0),
-                sem3: parseInt(row["Arrear3"] || 0)
+          for (const student of json) {
+            const rollNumber = student["Register No"] || student["Roll No"] || student["Roll"] || student["RollNumber"];
+            if (!rollNumber) continue;
+
+            const studentName = student["Name of Student"] || student["Name"];
+            const sgpa = student["SGPA"] || null;
+            const cgpa = student["CGPA"] || null;
+            const grade = student["Grade"] || null;
+
+            const ciaMarks = {};
+            for (const key in student) {
+              if (key.toLowerCase().startsWith("cia")) {
+                ciaMarks[key.trim()] = student[key];
               }
-            },
-            attendance: {
-              total: parseInt(row["Total Classes"] || 0),
-              present: parseInt(row["Present"] || 0),
-              absent: parseInt(row["Absent"] || 0)
-            },
-            extraPerformance: row["Talent"] || "",
-            subjects: {
-              core: {},
-              programming: {}
-            },
-            projects: []
-          });
+            }
 
-          const progress = ((i + 1) / students.length) * 100;
-          progressFill.style.width = `${progress}%`;
+            const subjects = {};
+            for (const key in student) {
+              if ((key.toLowerCase().includes("course") || key.toLowerCase().includes("subject")) && !key.toLowerCase().startsWith("cia")) {
+                subjects[key.trim()] = student[key];
+              }
+            }
+
+            const studentId = `${className}-${rollNumber}`;
+
+            await setDoc(doc(db, "students", studentId), {
+              name: studentName,
+              roll: rollNumber,
+              class: className,
+              sgpa,
+              cgpa,
+              grade,
+              ciaMarks,
+              subjects,
+              uploadedAt: new Date().toISOString()
+            });
+
+            totalStudents++;
+            status.innerHTML = `<i class="fas fa-check-circle"></i> Uploaded ${totalStudents} students so far...`;
+          }
         }
 
-        statusText.classList.remove('hidden');
-        setTimeout(() => {
-          statusText.classList.add('hidden');
-          progressBar.classList.add('hidden');
-        }, 3000);
+        status.innerHTML = `<i class="fas fa-check-double"></i> ✅ Upload complete: ${totalStudents} students saved`;
       };
 
       reader.readAsArrayBuffer(file);
-    });
+    };
   </script>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f9f9f9;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 30px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+      text-align: center;
+    }
+    input[type="file"] {
+      margin: 15px 0;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      font-size: 16px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #aaa;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2><i class="fas fa-file-excel"></i> Excel to Firebase (With CIA Courses)</h2>
+    <input type="file" id="file" accept=".xlsx" />
+    <br />
+    <button id="uploadBtn" onclick="uploadExcel()">Upload to Firebase</button>
+    <div id="status">📂 Waiting for file,,,,,</div>
+  </div>
 </body>
 </html>
