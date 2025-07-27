@@ -7,6 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+
   <style>
     body { background-color: #0f172a; }
   </style>
@@ -112,84 +114,170 @@
   }
 
   function renderGradeChart(subjects = {}) {
-    const labels = [], values = [];
+  const labels = [];
+  const dataValues = [];
+  const gradeLabels = [];
+  const backgroundColors = [];
 
-    Object.entries(subjects).forEach(([subject, value]) => {
-      let grade = typeof value === 'string' ? value.toUpperCase().trim() : percentToGrade(value);
-      labels.push(subject);
-      values.push(gradeToPoint(grade));
-    });
-
-    new Chart(document.getElementById("gradeChart"), {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [{
-          label: "Grade Point",
-          data: values,
-          backgroundColor: "#38bdf8",
-          borderRadius: 6
-        }]
-      },
-      options: {
-        scales: { y: { beginAtZero: true, max: 10 } },
-        plugins: { legend: { display: false } }
-      }
-    });
-  }
-
-  function gradeToPoint(grade) {
-    const map = {
-      "S": 10,
-      "A+": 9,
-      "A": 8,
-      "B": 7,
-      "C": 6,
-      "D": 5,
-      "F": 2
-    };
-    return map[grade] ?? 0;
-  }
-
-  function percentToGrade(percent) {
-    if (percent >= 91) return "O";
-    if (percent >= 81) return "A+";
-    if (percent >= 71) return "A";
-    if (percent >= 61) return "B+";
-    if (percent >= 51) return "B";
-    if (percent >= 45) return "C";
-    return "F";
-  }
-
-  function renderCIAChart(ciaLabel, canvasId, ciaMarks = {}) {
-    const labels = ["Course 1", "Course 2", "Course 3", "Course 4", "Course 5", "Course 6"];
-    const values = [];
-    const colors = [];
-
-    for (let i = 1; i <= 6; i++) {
-      const key = `${ciaLabel} - Course ${i}`;
-      const mark = Number(ciaMarks[key] ?? 0);
-      values.push(mark);
-      colors.push(mark < 25 ? "#ef4444" : "#22c55e");
+  Object.entries(subjects).forEach(([subject, value]) => {
+    let grade;
+    if (value === "E" || value === "e") {
+      grade = "E";
+    } else if (typeof value === "string") {
+      grade = value.toUpperCase().trim();
+    } else {
+      grade = percentToGrade(value);
     }
 
-    new Chart(document.getElementById(canvasId), {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [{
-          label: `${ciaLabel} Marks`,
-          data: values,
-          backgroundColor: colors,
-          borderRadius: 6
-        }]
+    labels.push(subject);
+    gradeLabels.push(grade);
+    backgroundColors.push(grade === "F" || grade === "E" ? "#ef4444" : "#38bdf8");
+    dataValues.push(gradeToPoint(grade)); 
+  });
+
+  const gradeScale = {
+    0: "E",
+    2: "F",
+    5: "D",
+    6: "C",
+    7: "B",
+    8: "A",
+    9: "A+",
+    10: "S"
+  };
+
+  new Chart(document.getElementById("gradeChart"), {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Grades",
+        data: dataValues,
+        backgroundColor: backgroundColors,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 10,
+          ticks: {
+            callback: function(value) {
+              return gradeScale[value] || "";
+            },
+            stepSize: 1
+          }
+        }
       },
-      options: {
-        scales: { y: { beginAtZero: true, max: 50 } },
-        plugins: { legend: { display: false } }
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `Grade: ${gradeLabels[ctx.dataIndex]}`
+          }
+        },
+        datalabels: {
+          anchor: 'end',
+          align: 'top',
+          formatter: (value, context) => gradeLabels[context.dataIndex],
+          color: '#fff',
+          font: { weight: 'bold', size: 14 }
+        }
       }
-    });
+    },
+    plugins: [ChartDataLabels]
+  });
+}
+
+
+  function gradeToPoint(grade) {
+  const map = {
+    "S": 10,
+    "A+": 9,
+    "A": 8,
+    "B": 7,
+    "C": 6,
+    "D": 5,
+    "F": 2,
+    "E": 0 
+  };
+  return map[grade] ?? 0;
+}
+
+function percentToGrade(percent) {
+  if (percent === "E") return "E"; 
+  percent = Number(percent);
+  if (percent >= 91) return "S";
+  if (percent >= 86) return "A+";
+  if (percent >= 75) return "A";
+  if (percent >= 66) return "B";
+  if (percent >= 55) return "C";
+  if (percent >= 50) return "D";
+  if (percent < 50) return "F";
+  return "E";
+}
+
+ function renderCIAChart(ciaLabel, canvasId, ciaMarks = {}) {
+  const labels = ["Course 1", "Course 2", "Course 3", "Course 4", "Course 5", "Course 6"];
+  const values = [];
+  const colors = [];
+  const displayLabels = [];
+
+  for (let i = 1; i <= 6; i++) {
+    const key = `${ciaLabel} - Course ${i}`;
+    const rawMark = ciaMarks[key];
+    
+    if (typeof rawMark === "string" && rawMark.trim().toLowerCase() === "absent") {
+      values.push(50); 
+      colors.push("#facc15"); 
+      displayLabels.push("Absent");
+    } else {
+      const mark = Number(rawMark ?? 0);
+      values.push(mark);
+      colors.push(mark < 25 ? "#ef4444" : "#22c55e");
+      displayLabels.push(mark.toString());
+    }
   }
+
+  new Chart(document.getElementById(canvasId), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: `${ciaLabel} Marks`,
+        data: values,
+        backgroundColor: colors,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 50
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `Mark: ${displayLabels[ctx.dataIndex]}`
+          }
+        },
+        datalabels: {
+          anchor: 'end',
+          align: 'top',
+          color: '#fff',
+          font: { weight: 'bold', size: 14 },
+          formatter: (_, context) => displayLabels[context.dataIndex]
+        }
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
+}
+
 
   function renderMentorFeedback(feedback = {}) {
     const perf = parseFloat(feedback.performance) || 0;
@@ -253,6 +341,31 @@
     });
   });
 </script>
+<script>
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  document.addEventListener("touchstart", (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  });
+
+  document.addEventListener("touchend", (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipeGesture();
+  });
+
+  function handleSwipeGesture() {
+    const swipeThreshold = 50;
+    if (Math.abs(touchEndX - touchStartX) > swipeThreshold) {
+      const params = new URLSearchParams(window.location.search);
+      const roll = params.get("roll");
+      if (roll) {
+        window.location.href = `view.html?roll=${roll}`;
+      }
+    }
+  }
+</script>
+
 
 </body>
 </html>
