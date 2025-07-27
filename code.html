@@ -7,14 +7,13 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen px-4 py-6">
-  <h1 class="text-3xl font-bold mb-6 text-center text-orange-400">💻 Programming Interested Students</h1>
+  <h1 class="text-3xl font-bold mb-6 text-center text-green-400">🎯 Programming Interested Students</h1>
 
   <div class="flex justify-center mb-6">
-    <input id="search" type="text" placeholder="Search by name, reg no, or prog %" class="w-full max-w-xl px-4 py-2 rounded-lg text-black focus:outline-none">
+    <input id="search" type="text" placeholder="Search by name or class" class="w-full max-w-xl px-4 py-2 rounded-lg text-black focus:outline-none">
   </div>
 
   <div class="overflow-x-auto mb-10">
@@ -45,33 +44,30 @@
     let students = [];
     let chartInstance = null;
 
-    function avg(obj) {
-      const vals = Object.values(obj || {});
-      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-    }
-
     async function loadStudents() {
       const querySnapshot = await getDocs(collection(db, "students"));
-      const all = querySnapshot.docs.map(doc => doc.data());
+      const allStudents = querySnapshot.docs.map(doc => doc.data());
 
-      students = all.filter(s => {
-        const progAvg = avg(s.subjects?.programming);
-        const coreAvg = avg(s.subjects?.core);
-        return progAvg > coreAvg && progAvg >= 50;
-      }).map(s => {
-        s.progAvg = avg(s.subjects?.programming).toFixed(2);
-        s.coreAvg = avg(s.subjects?.core).toFixed(2);
-        return s;
-      });
+      // Only students strong in programming: programPerf > corePerf
+      students = allStudents.map(s => ({
+        name: s.name || "Unknown",
+        class: s.class || "",
+        cgpa: parseFloat(s.cgpa || 0),
+        corePerf: parseFloat(s.corePerf || 0),
+        programPerf: parseFloat(s.programPerf || 0),
+      }))
+      .filter(s => s.programPerf > s.corePerf);
 
-      students.sort((a, b) => b.progAvg - a.progAvg);
+      students.sort((a, b) => b.programPerf - a.programPerf);
+
       renderChart(students);
       renderList(students);
     }
 
     function renderChart(data) {
-      const labels = data.map(s => s.name);
-      const progAvgs = data.map(s => s.progAvg);
+      const top15 = data.slice(0, 15); // Show only top 15
+      const labels = top15.map(s => s.name);
+      const programPerf = top15.map(s => s.programPerf);
 
       const ctx = document.getElementById("progChart").getContext("2d");
       if (chartInstance) chartInstance.destroy();
@@ -81,9 +77,9 @@
         data: {
           labels,
           datasets: [{
-            label: "Programming Avg %",
-            data: progAvgs,
-            backgroundColor: 'rgba(251, 146, 60, 0.8)', 
+            label: "Programming Performance",
+            data: programPerf,
+            backgroundColor: 'rgba(34, 197, 94, 0.8)', // greenish bars
             borderRadius: 10,
             barThickness: 20
           }]
@@ -111,16 +107,14 @@
       studentListEl.innerHTML = '';
       data.forEach(s => {
         const card = document.createElement('div');
-        card.className = "bg-gray-800 p-4 rounded-lg hover:bg-orange-600 transition cursor-pointer";
+        card.className = "bg-gray-800 p-4 rounded-lg hover:bg-green-600 transition cursor-pointer";
         card.innerHTML = `
           <h2 class="text-xl font-bold">${s.name}</h2>
-          <p>Reg No: ${s.roll}</p>
-          <p>Prog Avg: ${s.progAvg}%</p>
-          <p>Core Avg: ${s.coreAvg}%</p>
+          <p>Class: ${s.class}</p>
+          <p>CGPA: ${s.cgpa}</p>
+          <p>Core Perf: ${s.corePerf}%</p>
+          <p>Program Perf: ${s.programPerf}%</p>
         `;
-        card.onclick = () => {
-          window.location.href = `view.html?roll=${s.roll}`;
-        };
         studentListEl.appendChild(card);
       });
     }
@@ -129,8 +123,7 @@
       const query = searchInput.value.toLowerCase();
       const filtered = students.filter(s =>
         s.name.toLowerCase().includes(query) ||
-        s.roll.toLowerCase().includes(query) ||
-        s.progAvg.toString().includes(query)
+        s.class.toLowerCase().includes(query)
       );
       renderList(filtered);
     });
