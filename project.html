@@ -39,9 +39,10 @@
 
     async function loadProjects() {
       const querySnapshot = await getDocs(collection(db, "students"));
-      const all = querySnapshot.docs.map(doc => doc.data());
+      const allStudents = querySnapshot.docs.map(doc => doc.data());
 
-      students = all.filter(s => Array.isArray(s.projects) && s.projects.length > 0);
+      students = allStudents.filter(s => s.projectDesc && s.projectDesc.trim() !== "");
+
       renderList(students);
     }
 
@@ -51,20 +52,18 @@
         const card = document.createElement('div');
         card.className = "bg-gray-800 p-4 rounded-lg hover:bg-yellow-600 transition cursor-pointer";
 
-        const projectItems = s.projects.map(p => `<li class="ml-4 list-disc">${p}</li>`).join('');
-
         card.innerHTML = `
-          <h2 class="text-xl font-bold">${s.name}</h2>
-          <p>Reg No: ${s.roll}</p>
-          <p>Dept: ${s.dept}</p>
+          <h2 class="text-xl font-bold">${s.name || "Unknown"}</h2>
+          <p>Reg No: ${s.roll || "N/A"}</p>
+          <p>Dept: ${s.class || "N/A"}</p>
           <div class="mt-2">
-            <p class="font-semibold">Projects:</p>
-            <ul class="text-sm italic">${projectItems}</ul>
+            <p class="font-semibold">Project:</p>
+            <p class="italic text-sm">${s.projectDesc}</p>
           </div>
         `;
 
         card.onclick = () => {
-          window.location.href = `view.html?roll=${s.roll}`;
+          window.location.href = `view.html?roll=${encodeURIComponent(s.roll)}`;
         };
 
         projectListEl.appendChild(card);
@@ -74,9 +73,9 @@
     searchInput.addEventListener("input", () => {
       const query = searchInput.value.toLowerCase();
       const filtered = students.filter(s =>
-        s.name.toLowerCase().includes(query) ||
-        s.roll.toLowerCase().includes(query) ||
-        s.dept.toLowerCase().includes(query)
+        (s.name || '').toLowerCase().includes(query) ||
+        (s.id || '').toLowerCase().includes(query) ||
+        (s.cgpa || '').toString().toLowerCase().includes(query)
       );
       renderList(filtered);
     });
