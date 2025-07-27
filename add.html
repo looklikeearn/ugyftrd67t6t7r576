@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Add Project Details</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-blue-50 min-h-screen p-6">
+  <div class="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl p-6">
+    <h1 class="text-3xl font-bold text-center text-blue-800 mb-6">Add Project & Extra Details</h1>
+
+    <div class="mb-4">
+      <input id="regnoInput" type="text" placeholder="Enter Registration Number" class="w-full p-3 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <ul id="suggestions" class="mt-2 text-sm text-gray-700"></ul>
+    </div>
+
+    <div id="studentSection" class="hidden">
+      <div class="mb-6">
+        <p class="text-lg font-semibold text-gray-800">Student Name: <span id="studentName" class="font-normal text-gray-700"></span></p>
+        <p class="text-lg font-semibold text-gray-800">Reg No: <span id="studentRegno" class="font-normal text-gray-700"></span></p>
+      </div>
+
+      <div class="mb-4">
+        <textarea id="projectDesc" placeholder="Project Description" class="w-full p-4 border border-gray-300 rounded mb-4" rows="4"></textarea>
+        <textarea id="extraPerformance" placeholder="Extra-Curricular Performance" class="w-full p-4 border border-gray-300 rounded mb-6" rows="3"></textarea>
+      </div>
+
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-blue-800 mb-2">Core Subject Performance (%)</h2>
+        <input id="corePerf" type="range" min="0" max="100" value="0" class="w-full">
+        <p class="text-sm mt-1 text-gray-700">Selected: <span id="coreValue">0</span>%</p>
+      </div>
+
+      <div class="mb-6">
+        <h2 class="text-lg font-semibold text-blue-800 mb-2">Program Subject Performance (%)</h2>
+        <input id="programPerf" type="range" min="0" max="100" value="0" class="w-full">
+        <p class="text-sm mt-1 text-gray-700">Selected: <span id="programValue">0</span>%</p>
+      </div>
+
+      <button id="saveBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">Save Details</button>
+    </div>
+  </div>
+
+  <!-- Firebase JS -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, getDocs, updateDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiGeTxfCxTy3k",
+      authDomain: "test-d6f13.firebaseapp.com",
+      projectId: "test-d6f13",
+      storageBucket: "test-d6f13.appspot.com",
+      messagingSenderId: "1093740765706",
+      appId: "1:1093740765706:web:2192b9d3a5a12cfeb3a1d4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const regnoInput = document.getElementById("regnoInput");
+    const suggestions = document.getElementById("suggestions");
+    const studentSection = document.getElementById("studentSection");
+    const studentName = document.getElementById("studentName");
+    const studentRegno = document.getElementById("studentRegno");
+
+    const projectDesc = document.getElementById("projectDesc");
+    const extraPerformance = document.getElementById("extraPerformance");
+    const corePerf = document.getElementById("corePerf");
+    const programPerf = document.getElementById("programPerf");
+    const coreValue = document.getElementById("coreValue");
+    const programValue = document.getElementById("programValue");
+    const saveBtn = document.getElementById("saveBtn");
+
+    let studentsList = [];
+    let selectedRegNo = "";
+
+    async function fetchAllStudents() {
+      const snapshot = await getDocs(collection(db, "students"));
+      studentsList = snapshot.docs.map(doc => ({
+        regno: doc.id,
+        ...doc.data()
+      }));
+    }
+
+    await fetchAllStudents();
+
+    regnoInput.addEventListener("input", () => {
+      const input = regnoInput.value.trim().toLowerCase();
+      suggestions.innerHTML = "";
+      if (!input) return;
+
+      const matches = studentsList.filter(s => s.regno.toLowerCase().includes(input));
+      matches.forEach(s => {
+        const li = document.createElement("li");
+        li.textContent = `${s.regno} - ${s.name ?? 'Unnamed'}`;
+        li.className = "cursor-pointer px-2 py-1 hover:bg-blue-100";
+        li.onclick = () => loadStudent(s.regno);
+        suggestions.appendChild(li);
+      });
+    });
+
+    async function loadStudent(regno) {
+      suggestions.innerHTML = "";
+      regnoInput.value = regno;
+      selectedRegNo = regno;
+
+      const docRef = doc(db, "students", regno);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        alert("Student not found.");
+        return;
+      }
+
+      const data = docSnap.data();
+      studentName.textContent = data.name || "N/A";
+      studentRegno.textContent = regno;
+      projectDesc.value = data.projectDesc || "";
+      extraPerformance.value = data.extraPerformance || "";
+      corePerf.value = data.corePerf || 0;
+      programPerf.value = data.programPerf || 0;
+      coreValue.textContent = data.corePerf || 0;
+      programValue.textContent = data.programPerf || 0;
+
+      studentSection.classList.remove("hidden");
+    }
+
+    corePerf.addEventListener("input", () => {
+      coreValue.textContent = corePerf.value;
+    });
+
+    programPerf.addEventListener("input", () => {
+      programValue.textContent = programPerf.value;
+    });
+
+    saveBtn.addEventListener("click", async () => {
+      if (!selectedRegNo) return;
+      const docRef = doc(db, "students", selectedRegNo);
+      await updateDoc(docRef, {
+        projectDesc: projectDesc.value.trim(),
+        extraPerformance: extraPerformance.value.trim(),
+        corePerf: parseInt(corePerf.value),
+        programPerf: parseInt(programPerf.value)
+      });
+      alert("Project details saved successfully!");
+    });
+  </script>
+</body>
+</html>
