@@ -55,7 +55,6 @@
         cgpa: parseFloat(s.cgpa || 0),
         corePerf: parseFloat(s.corePerf || 0),
         programPerf: parseFloat(s.programPerf || 0),
-        
       }))
       .filter(s => s.corePerf > s.programPerf);
 
@@ -117,6 +116,9 @@
           <p>Core Perf: ${s.corePerf}%</p>
           <p>Program Perf: ${s.programPerf}%</p>
         `;
+        card.onclick = () => {
+          window.location.href = `view.html?roll=${encodeURIComponent(s.roll)}`;
+        };
         studentListEl.appendChild(card);
       });
     }
@@ -124,9 +126,9 @@
     searchInput.addEventListener("input", () => {
       const query = searchInput.value.toLowerCase();
       const filtered = students.filter(s =>
-        s.name.toLowerCase().includes(query) ||
-        s.class.toLowerCase().includes(query) ||
-        s.roll.toLowerCase().includes(query)
+        (s.name || '').toLowerCase().includes(query) ||
+        (s.class || '').toLowerCase().includes(query) ||
+        (s.roll || '').toLowerCase().includes(query)
       );
       renderList(filtered);
     });
