@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -111,6 +112,7 @@
     function renderList() {
       subjectListEl.innerHTML = '';
 
+      // Sort subjectData by arrear count descending
       const sortedSubjects = Object.entries(subjectData).sort((a, b) => b[1] - a[1]);
 
       sortedSubjects.forEach(([subject, count]) => {
@@ -131,7 +133,7 @@
       const query = searchInput.value.toLowerCase();
       const filteredSubjects = Object.entries(subjectData)
         .filter(([sub]) => sub.toLowerCase().includes(query))
-        .sort((a, b) => b[1] - a[1]); 
+        .sort((a, b) => b[1] - a[1]); // keep sorted order on search
 
       subjectListEl.innerHTML = '';
       filteredSubjects.forEach(([subject, count]) => {
