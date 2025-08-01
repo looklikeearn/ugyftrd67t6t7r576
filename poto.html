@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Prasad</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <style>
@@ -16,8 +16,10 @@
     h1 {
       margin-bottom: 1rem;
     }
-    input[type="file"] {
+    input[type="file"], input[type="number"] {
       margin-bottom: 1rem;
+      font-size: 16px;
+      padding: 0.3rem;
     }
     button {
       margin-top: 1rem;
@@ -44,49 +46,47 @@
       background-color: #4f46e5;
       transition: width 0.3s ease;
     }
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 1rem;
-      margin-top: 2rem;
+    #status {
+      margin-top: 1rem;
+      font-weight: bold;
     }
-    .image-box {
-      background: #fff;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    canvas {
-      border: 1px solid #ccc;
-    }
-    .download {
+    label {
       display: block;
-      margin-top: 0.5rem;
-      background: #4f46e5;
-      color: white;
-      padding: 0.4rem;
-      border-radius: 4px;
-      text-decoration: none;
-      font-size: 14px;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
 
   <h1>Please Upload the Zip file</h1>
+
+  <label for="startNumber">Enter Start RegNo Number:</label>
+  <input type="number" id="startNumber" value="226173035" />
+
   <input type="file" id="zipInput" accept=".zip" />
+
   <div id="progressContainer"><div id="progressBar"></div></div>
+  <div id="status">Waiting for file...</div>
   <button id="downloadAllBtn" style="display:none;">Download ZIP</button>
-  <div class="gallery" id="gallery"></div>
 
   <script>
     const zipInput = document.getElementById('zipInput');
-    const gallery = document.getElementById('gallery');
     const progressBar = document.getElementById('progressBar');
     const downloadAllBtn = document.getElementById('downloadAllBtn');
-    const zipOutput = new JSZip();
+    const statusText = document.getElementById('status');
+    const startNumberInput = document.getElementById('startNumber');
+    let zipOutput;
 
-    const cropCenter = (img, fileName, callback) => {
+    function adjustBrightness(data, factor = 1.1) {
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.min(data[i] * factor, 255);      
+        data[i + 1] = Math.min(data[i + 1] * factor, 255); 
+        data[i + 2] = Math.min(data[i + 2] * factor, 255); 
+      }
+    }
+
+    function cropAndAdjustImage(img) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const size = 600;
@@ -99,76 +99,94 @@
 
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, size, size);
-
       ctx.drawImage(img, cropX, cropY, cropSize, cropSize, 0, 0, size, size);
 
       const imageData = ctx.getImageData(0, 0, size, size);
-      const data = imageData.data;
+      adjustBrightness(imageData.data, 1.1);
+      ctx.putImageData(imageData, 0, 0);
+      return canvas;
+    }
 
-      for (let i = 0; i < data.length; i += 4) {
-        data[i] = Math.min(data[i] + 15, 255);    
-        data[i + 1] = Math.min(data[i + 1] + 15, 255); 
-        data[i + 2] = Math.min(data[i + 2] + 15, 255); 
+    function loadImage(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Image failed to load: " + url));
+        img.src = url;
+      });
+    }
+
+    async function processImagesSequentially(files, startNum) {
+      const total = files.length;
+      let processed = 0;
+      let counter = Number(startNum);
+
+      for (const file of files) {
+        try {
+          const base64 = await file.async("base64");
+          const ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+          const dataURL = `data:image/${ext};base64,${base64}`;
+          const img = await loadImage(dataURL);
+          const canvas = cropAndAdjustImage(img);
+
+          await new Promise((resolve, reject) => {
+            canvas.toBlob(blob => {
+              if (!blob) {
+                reject(new Error('Canvas toBlob failed'));
+                return;
+              }
+              zipOutput.file(`${counter}.${ext}`, blob);
+              resolve();
+            }, `image/${ext}`);
+          });
+
+          processed++;
+          counter++;  
+          const progress = Math.round((processed / total) * 100);
+          progressBar.style.width = `${progress}%`;
+          statusText.textContent = `Finished processing ${processed} of ${total} images.`;
+
+        } catch (err) {
+          console.error(`Error processing image: ${file.name}`, err);
+          processed++;
+          const progress = Math.round((processed / total) * 100);
+          progressBar.style.width = `${progress}%`;
+          statusText.textContent = `Finished processing ${processed} of ${total} images`;
+        }
       }
 
-      ctx.putImageData(imageData, 0, 0);
-      callback(canvas);
-    };
+      downloadAllBtn.style.display = 'inline-block';
+    }
 
     zipInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      const zip = await JSZip.loadAsync(file);
-      const files = Object.values(zip.files).filter(f => !f.dir && /\.(jpe?g|png)$/i.test(f.name));
+      zipOutput = new JSZip();
 
-      gallery.innerHTML = '';
+      const zip = await JSZip.loadAsync(file);
+      const imageFiles = Object.values(zip.files).filter(f => !f.dir && /\.(jpe?g|png)$/i.test(f.name));
+
+      const startNumValue = startNumberInput.value.trim();
+      if (!startNumValue || isNaN(startNumValue)) {
+        alert("Please enter a valid start number!");
+        return;
+      }
+
+      statusText.textContent = `Starting to process ${imageFiles.length} images...`;
       progressBar.style.width = '0%';
       downloadAllBtn.style.display = 'none';
-      zipOutput.files = {};
 
-      let processed = 0;
-      const total = files.length;
-      let imageCounter = 227045002;  
-
-      for (const entry of files) {
-        const base64 = await entry.async("base64");
-        const dataURL = `data:image/jpeg;base64,${base64}`;
-
-        const img = new Image();
-        img.onload = () => {
-          cropCenter(img, entry.name, (canvas) => {
-            const div = document.createElement('div');
-            div.className = 'image-box';
-
-            const download = document.createElement('a');
-            download.textContent = 'Download';
-            download.className = 'download';
-            download.href = canvas.toDataURL('image/jpeg');
-            download.download = `${imageCounter}.jpg`;
-
-            div.appendChild(canvas);
-            div.appendChild(download);
-            gallery.appendChild(div);
-
-            canvas.toBlob(blob => {
-              zipOutput.file(`${imageCounter}.jpg`, blob);
-              processed++;
-              progressBar.style.width = `${(processed / total) * 100}%`;
-              if (processed === total) downloadAllBtn.style.display = 'inline-block';
-            }, 'image/jpeg');
-
-            imageCounter++;  
-          });
-        };
-        img.src = dataURL;
-      }
+      await processImagesSequentially(imageFiles, startNumValue);
     });
 
     downloadAllBtn.addEventListener('click', async () => {
+      statusText.textContent = 'Creating ZIP file...';
       const content = await zipOutput.generateAsync({ type: "blob" });
       saveAs(content, "sastrastud.zip");
+      statusText.textContent = 'Download started.';
     });
   </script>
+
 </body>
 </html>
