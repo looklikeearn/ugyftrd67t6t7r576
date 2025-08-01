@@ -73,10 +73,10 @@
 </head>
 <body>
 
-  <h1>Please Upload the Zip</h1>
+  <h1>Please Upload the Zip file</h1>
   <input type="file" id="zipInput" accept=".zip" />
   <div id="progressContainer"><div id="progressBar"></div></div>
-  <button id="downloadAllBtn" style="display:none;">Download in ZIP</button>
+  <button id="downloadAllBtn" style="display:none;">Download ZIP</button>
   <div class="gallery" id="gallery"></div>
 
   <script>
@@ -122,7 +122,7 @@
       const zip = await JSZip.loadAsync(file);
       const files = Object.values(zip.files).filter(f => !f.dir && /\.(jpe?g|png)$/i.test(f.name));
 
-      gallery.innerHTML = '';f
+      gallery.innerHTML = '';
       progressBar.style.width = '0%';
       downloadAllBtn.style.display = 'none';
       zipOutput.files = {};
