@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Office Login</title>
+  <style>
+    /* Reset & base */
+    * {
+      box-sizing: border-box;
+    }
+    body, html {
+      margin: 0;
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #4f46e5, #10b981);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+    }
+    .login-container {
+      background: #fff;
+      padding: 2rem 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+      width: 320px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 1.5rem;
+      color: #2563eb;
+      font-weight: 700;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    input {
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+    input:focus {
+      outline: none;
+      border-color: #10b981;
+      box-shadow: 0 0 5px #10b981;
+    }
+    button {
+      background: #10b981;
+      border: none;
+      color: white;
+      padding: 0.85rem;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background: #0e9f6e;
+    }
+    .error-message {
+      color: #dc2626;
+      font-weight: 600;
+      margin-top: -0.5rem;
+      margin-bottom: 1rem;
+      min-height: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <h1>Office Login</h1>
+    <form id="loginForm" novalidate>
+      <input
+        type="text"
+        id="username"
+        name="username"
+        placeholder="Username"
+        autocomplete="username"
+        required
+        minlength="3"
+      />
+      <input
+        type="password"
+        id="password"
+        name="password"
+        placeholder="Password"
+        autocomplete="current-password"
+        required
+        minlength="6"
+      />
+      <div class="error-message" id="errorMsg"></div>
+      <button type="submit">Log In</button>
+    </form>
+  </div>
+
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault(); // Prevent default form submit
+
+      const username = loginForm.username.value.trim();
+      const password = loginForm.password.value.trim();
+
+      // Clear previous error
+      errorMsg.textContent = '';
+
+      // Simple validation
+      if (!username || !password) {
+        errorMsg.textContent = 'Please fill out both fields.';
+        return;
+      }
+
+      // Check credentials
+      if (username === 'officehead' && password === 'srcstaff') {
+        localStorage.setItem('authorized', 'true');
+        window.location.href = 'merge.html';
+      } else {
+        errorMsg.textContent = 'Invalid username or password.';
+      }
+    });
+  </script>
+
+</body>
+</html>
