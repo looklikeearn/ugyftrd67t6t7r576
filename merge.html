@@ -86,7 +86,7 @@
   });
 
   // Adjust brightness of image
-  function adjustBrightness(data, factor = 0.91) {
+  function adjustBrightness(data, factor = 1.3) {
     for (let i = 0; i < data.length; i += 4) {
       data[i] = Math.min(data[i] * factor, 255);
       data[i + 1] = Math.min(data[i + 1] * factor, 255);
