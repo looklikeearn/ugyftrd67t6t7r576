@@ -101,7 +101,6 @@
 
 <!-- Progress Bar and Status -->
 <div id="progressContainer"><div id="progressBar"></div></div>
-  <h3>(*Notes: Excel Sheet Should contain Reg.No and Ref.No column*)</h3>
 <div id="status">Waiting for files...</div>
 
 <!-- Download Button -->
@@ -145,9 +144,10 @@
 
       refToAppNo = {};
       json.forEach(row => {
-        if (row["ref no"] && row["Application No."]) {
-          refToAppNo[Math.floor(row["ref no"])] = row["Application No."];
-        }
+        if (row["Ref.No"] && row["Reg.No"]) {
+  refToAppNo[Math.floor(row["Ref.No"])] = row["Reg.No"];
+}
+
       });
 
       statusText.textContent = "Excel uploaded and mapped successfully.";
