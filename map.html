@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Photo Rename and Brightness</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #f9f9f9; padding: 2rem; text-align: center; }
+    h1 { margin-bottom: 1rem; }
+    input[type="file"] { margin: 0.5rem 0; font-size: 16px; padding: 0.3rem; }
+    button { margin-top: 1rem; background: #10b981; color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+    #progressContainer { width: 100%; max-width: 600px; margin: 1rem auto; background: #ddd; border-radius: 6px; overflow: hidden; height: 20px; }
+    #progressBar { width: 0%; height: 100%; background-color: #4f46e5; transition: width 0.3s ease; }
+    #status { margin-top: 1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>Upload Excel & Zip Files</h1>
+<label>Excel File (.xlsx)</label>
+<input type="file" id="excelInput" accept=".xlsx" />
+<label>Image ZIP File</label>
+<input type="file" id="zipInput" accept=".zip" />
+
+<div id="progressContainer"><div id="progressBar"></div></div>
+<div id="status">Waiting for files...</div>
+<button id="downloadAllBtn" style="display:none;">Download Processed ZIP</button>
+
+<script>
+  const excelInput = document.getElementById('excelInput');
+  const zipInput = document.getElementById('zipInput');
+  const progressBar = document.getElementById('progressBar');
+  const statusText = document.getElementById('status');
+  const downloadAllBtn = document.getElementById('downloadAllBtn');
+
+  let refToAppNo = {};
+  let zipOutput;
+
+  // Read Excel and map ref no → application no
+  excelInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet);
+
+      refToAppNo = {};
+      json.forEach(row => {
+        if (row["ref no"] && row["Application No."]) {
+          refToAppNo[Math.floor(row["ref no"])] = row["Application No."];
+        }
+      });
+
+      statusText.textContent = "Excel uploaded and mapped successfully.";
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  // Brightness adjustment
+  function adjustBrightness(data, factor = 1.1) {
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = Math.min(data[i] * factor, 255);
+      data[i + 1] = Math.min(data[i + 1] * factor, 255);
+      data[i + 2] = Math.min(data[i + 2] * factor, 255);
+    }
+  }
+
+  function processImage(img) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    adjustBrightness(imageData.data);
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
+  }
+
+  function loadImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Image failed to load: " + url));
+      img.src = url;
+    });
+  }
+
+  async function processImagesSequentially(files) {
+    const total = files.length;
+    let processed = 0;
+
+    for (const file of files) {
+      try {
+        const base64 = await file.async("base64");
+        const ext = file.name.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+        const dataURL = `data:image/${ext};base64,${base64}`;
+        const img = await loadImage(dataURL);
+        const canvas = processImage(img);
+
+        const refMatch = file.name.match(/(\d+)/);
+        const refNo = refMatch ? parseInt(refMatch[1]) : null;
+        const newName = refToAppNo[refNo] ? `${refToAppNo[refNo]}.${ext}` : file.name;
+
+        await new Promise((resolve, reject) => {
+          canvas.toBlob(blob => {
+            if (!blob) return reject();
+            zipOutput.file(newName, blob);
+            resolve();
+          }, `image/${ext}`);
+        });
+
+        processed++;
+        const progress = Math.round((processed / total) * 100);
+        progressBar.style.width = `${progress}%`;
+        statusText.textContent = `Processed ${processed}/${total}`;
+      } catch (e) {
+        console.error("Error:", e);
+      }
+    }
+
+    downloadAllBtn.style.display = "inline-block";
+  }
+
+  zipInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !Object.keys(refToAppNo).length) {
+      alert("Please upload the Excel file first!");
+      return;
+    }
+
+    const zip = await JSZip.loadAsync(file);
+    zipOutput = new JSZip();
+
+    const imageFiles = Object.values(zip.files).filter(f => !f.dir && /\.(jpe?g|png)$/i.test(f.name));
+    statusText.textContent = `Starting to process ${imageFiles.length} images...`;
+    progressBar.style.width = '0%';
+    downloadAllBtn.style.display = 'none';
+
+    await processImagesSequentially(imageFiles);
+  });
+
+  downloadAllBtn.addEventListener('click', async () => {
+    statusText.textContent = 'Creating ZIP file...';
+    const content = await zipOutput.generateAsync({ type: "blob" });
+    saveAs(content, "processed_photos.zip");
+    statusText.textContent = 'Download started.';
+  });
+</script>
+</body>
+</html>
