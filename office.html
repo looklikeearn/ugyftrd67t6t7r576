@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Office Login</title>
+  <title>Prasad S N</title>
   <style>
-    /* Reset & base */
     * {
       box-sizing: border-box;
     }
@@ -15,9 +14,15 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #4f46e5, #10b981);
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       color: #333;
+    }
+    .brand-logo {
+      max-width: 100%;
+      width: 360px;
+      margin-bottom: 1.5rem;
     }
     .login-container {
       background: #fff;
@@ -74,8 +79,11 @@
 </head>
 <body>
 
+  <!-- Logo Image -->
+  <img src="sastra_brand.jpg" alt="SASTRA University Logo" class="brand-logo" />
+
   <div class="login-container">
-    <h1>Office Login</h1>
+    <h1>Login</h1>
     <form id="loginForm" novalidate>
       <input
         type="text"
@@ -105,21 +113,18 @@
     const errorMsg = document.getElementById('errorMsg');
 
     loginForm.addEventListener('submit', (e) => {
-      e.preventDefault(); // Prevent default form submit
+      e.preventDefault();
 
       const username = loginForm.username.value.trim();
       const password = loginForm.password.value.trim();
 
-      // Clear previous error
       errorMsg.textContent = '';
 
-      // Simple validation
       if (!username || !password) {
         errorMsg.textContent = 'Please fill out both fields.';
         return;
       }
 
-      // Check credentials
       if (username === 'officehead' && password === 'srcstaff') {
         localStorage.setItem('authorized', 'true');
         window.location.href = 'merge.html';
