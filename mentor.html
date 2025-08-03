@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,90 +6,92 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet" />
   <style>
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb {
-      background: #14b8a6;
+      background: #3b82f6;
       border-radius: 3px;
     }
+    body { font-family: 'Poppins', sans-serif; }
   </style>
 </head>
-<body class="bg-gray-900 text-white p-6">
-  <div class="max-w-xl mx-auto bg-gray-800 p-6 rounded-xl shadow-lg space-y-6">
-    <h1 class="text-2xl font-bold text-center text-teal-400">
+<body class="bg-white text-black p-4 sm:p-6">
+
+  <div class="sticky top-0 z-50 bg-white py-4 shadow-md flex justify-center">
+    <img src="sastra_brand.jpg" alt="Logo" class="h-20 w-auto" />
+  </div>
+
+  <div class="max-w-xl mx-auto bg-white border border-gray-300 p-6 rounded-xl shadow-lg space-y-6">
+
+    <h1 class="text-2xl font-bold text-center text-blue-700">
       <i class="fas fa-chalkboard-teacher"></i> Mentor Feedback Panel
     </h1>
 
-    <!-- Search Student -->
     <div>
-      <label class="block mb-1 text-teal-300 font-semibold">Search by RegNo</label>
+      <label class="block mb-1 text-gray-700 font-semibold">Search by RegNo</label>
       <input
         id="regnoInput"
         type="text"
         placeholder="Type regno (e.g., 34...)"
-        class="w-full p-2 rounded bg-gray-700 text-white focus:outline-none"
+        class="w-full p-2 border border-gray-300 rounded bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-400"
         autocomplete="off"
       />
-      <ul id="suggestions" class="mt-1 bg-gray-700 text-white rounded shadow-md max-h-40 overflow-auto hidden"></ul>
+      <ul id="suggestions" class="mt-1 bg-white border border-gray-300 text-black rounded shadow-md max-h-40 overflow-auto hidden"></ul>
     </div>
 
-    <!-- Student Info -->
-    <div id="studentInfo" class="hidden space-y-2 bg-gray-700 p-4 rounded-lg">
-      <p><i class="fas fa-user text-teal-400"></i> Name: <span id="studentName"></span></p>
-      <p><i class="fas fa-id-card text-teal-400"></i> RegNo: <span id="studentRegno"></span></p>
+    <div id="studentInfo" class="hidden space-y-2 bg-gray-100 p-4 rounded-lg border">
+      <p><i class="fas fa-user text-blue-500"></i> Name: <span id="studentName"></span></p>
+      <p><i class="fas fa-id-card text-blue-500"></i> RegNo: <span id="studentRegno"></span></p>
     </div>
 
-    <!-- Rating -->
     <div class="space-y-4">
-      <h3 class="font-semibold text-teal-300">Rate Performance (%)</h3>
+      <h3 class="font-semibold text-gray-700">Rate Performance (%)</h3>
       <input
         type="range"
         id="performanceSlider"
         min="0"
         max="100"
         value="50"
-        class="w-full h-2 bg-teal-600 rounded-lg appearance-none"
-        style="accent-color: #14b8a6"
+        class="w-full h-2 rounded-lg appearance-none bg-blue-300"
+        style="accent-color: #3b82f6"
       />
-      <div class="flex justify-between text-sm text-teal-300">
+      <div class="flex justify-between text-sm text-gray-500">
         <span>0%</span><span>100%</span>
       </div>
-      <p class="text-center mt-1 text-white">
+      <p class="text-center text-sm mt-1 text-blue-700">
         Selected: <span id="sliderValue">50</span>%
       </p>
     </div>
 
-    <!-- Feedback Text Area -->
     <div>
-      <label class="block mb-1 text-teal-300 font-semibold">Mentor Feedback</label>
+      <label class="block mb-1 text-gray-700 font-semibold">Mentor Feedback</label>
       <textarea
         id="feedbackText"
         rows="3"
         placeholder="Write feedback here..."
-        class="w-full p-2 rounded bg-gray-700 text-white focus:outline-none"
+        class="w-full p-2 border border-gray-300 rounded bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-400"
       ></textarea>
     </div>
 
-    <!-- Placement Improvement -->
     <div>
-      <label class="block mb-1 text-teal-300 font-semibold">Placement Improvement</label>
+      <label class="block mb-1 text-gray-700 font-semibold">Placement Improvement</label>
       <textarea
         id="placementImprovement"
         rows="2"
         placeholder="Suggestions for placement preparation..."
-        class="w-full p-2 rounded bg-gray-700 text-white focus:outline-none"
+        class="w-full p-2 border border-gray-300 rounded bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-400"
       ></textarea>
     </div>
 
-    <!-- Submit Button -->
     <button
       id="submitBtn"
-      class="w-full py-2 bg-teal-600 hover:bg-teal-700 rounded text-white font-bold"
+      class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded text-white font-bold transition"
     >
       <i class="fas fa-paper-plane"></i> Submit Feedback
     </button>
 
-    <div id="status" class="text-sm text-center mt-2"></div>
+    <div id="status" class="text-sm text-center mt-2 font-semibold"></div>
   </div>
 
   <script type="module">
@@ -154,7 +156,7 @@
       matches.forEach(s => {
         const li = document.createElement("li");
         li.textContent = `${s.regno}`;
-        li.className = "p-2 hover:bg-teal-600 cursor-pointer";
+        li.className = "p-2 hover:bg-blue-100 cursor-pointer";
         li.onclick = () => selectStudent(s);
         suggestions.appendChild(li);
       });
@@ -183,7 +185,6 @@
       if (!selectedStudent) {
         return showStatus("❌ Please select a student.", "red");
       }
-
       if (feedback === "") {
         return showStatus("❌ Feedback is required.", "red");
       }
@@ -212,10 +213,8 @@
 
     function showStatus(msg, color) {
       statusDiv.textContent = msg;
-      statusDiv.style.color = color === "red" ? "#f87171" : "#34d399";
-      setTimeout(() => {
-        statusDiv.textContent = "";
-      }, 4000);
+      statusDiv.style.color = color === "red" ? "#dc2626" : "#16a34a";
+      setTimeout(() => { statusDiv.textContent = ""; }, 4000);
     }
   </script>
 </body>
