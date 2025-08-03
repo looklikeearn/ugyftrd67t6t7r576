@@ -8,20 +8,39 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+
+    ::placeholder {
+      color: #888;
+    }
+  </style>
 </head>
-<body class="bg-gray-900 text-white px-4 py-6 min-h-screen">
+<body class="bg-white text-gray-800 px-4 py-5 min-h-screen">
 
-  <h1 class="text-2xl font-bold mb-4 text-center text-green-400">Students by CGPA</h1>
-
-  <div class="mb-4">
-    <input id="search" type="text" placeholder="Search name, reg no, or CGPA..." class="w-full px-4 py-2 rounded text-black focus:outline-none text-sm" />
+  <div class="sticky top-0 z-50 bg-white py-4 shadow-md flex justify-center">
+    <img src="sastra_brand.jpg" alt="Logo" class="h-20 w-auto" />
   </div>
 
-  <div class="overflow-x-auto mb-6">
-    <canvas id="cgpaChart" class="w-full max-w-full"></canvas>
+  <h1 class="text-2xl font-bold text-center bg-gradient-to-r from-blue-900 to-blue-400 text-white py-2 rounded mb-4">
+    Student CGPA Rankings
+  </h1>
+
+  <input 
+    id="search" 
+    type="text" 
+    placeholder="Search by name, reg no, or CGPA..." 
+    class="w-full border border-gray-300 px-4 py-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" 
+  />
+
+  <div class="w-full overflow-x-auto mb-5">
+    <canvas id="cgpaChart" class="w-full h-64 sm:h-80"></canvas>
   </div>
 
-  <div id="studentList" class="grid grid-cols-1 gap-4"></div>
+  <div id="studentList" class="grid gap-4"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -48,34 +67,28 @@
     async function loadStudents() {
       const querySnapshot = await getDocs(collection(db, "students"));
       students = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
       students.sort((a, b) => parseFloat(b.cgpa) - parseFloat(a.cgpa));
-
       renderChart(students);
       renderList(students);
     }
 
     function renderChart(data) {
-      const top14 = data.slice(0, 10);
-      const labels = top14.map(s => s.name);
-      const cgpas = top14.map(s => parseFloat(s.cgpa));
-
+      const top10 = data.slice(0, 10);
+      const labels = top10.map(s => s.name);
+      const cgpas = top10.map(s => parseFloat(s.cgpa));
       const ctx = document.getElementById("cgpaChart").getContext("2d");
-
-      if (cgpaChartInstance) {
-        cgpaChartInstance.destroy();
-      }
+      if (cgpaChartInstance) cgpaChartInstance.destroy();
 
       cgpaChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: labels,
+          labels,
           datasets: [{
             label: "CGPA",
             data: cgpas,
-            backgroundColor: 'rgba(34, 197, 94, 0.8)',
-            borderRadius: 8,
-            barThickness: 18
+            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+            borderRadius: 6,
+            barThickness: 20
           }]
         },
         options: {
@@ -84,21 +97,15 @@
           plugins: {
             legend: { display: false },
             datalabels: {
-              color: '#ffffff',
+              color: '#000',
               anchor: 'end',
               align: 'top',
               font: { size: 10, weight: 'bold' }
             }
           },
           scales: {
-            y: {
-              beginAtZero: true,
-              max: 10,
-              ticks: { color: '#ccc', stepSize: 1 }
-            },
-            x: {
-              ticks: { color: '#ccc', autoSkip: false, maxRotation: 45, font: { size: 10 } }
-            }
+            y: { beginAtZero: true, max: 10, ticks: { stepSize: 1 } },
+            x: { ticks: { font: { size: 10 } } }
           }
         },
         plugins: [ChartDataLabels]
@@ -109,11 +116,11 @@
       studentListEl.innerHTML = '';
       data.forEach(s => {
         const card = document.createElement('div');
-        card.className = "bg-gray-800 p-3 rounded hover:bg-green-700 transition text-sm cursor-pointer";
+        card.className = "border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition duration-200 text-sm bg-white cursor-pointer";
         card.innerHTML = `
-          <h2 class="font-bold text-base">${s.name}</h2>
-          <p>Reg No: ${s.id}</p>
-          <p>CGPA: ${s.cgpa}</p>
+          <h2 class="font-semibold text-base text-blue-600">${s.name}</h2>
+          <p class="text-gray-700">Reg No: <span class="font-medium">${s.id}</span></p>
+          <p class="text-gray-700">CGPA: <span class="font-medium">${s.cgpa}</span></p>
         `;
         card.onclick = () => {
           window.location.href = `view.html?roll=${s.roll}`;
