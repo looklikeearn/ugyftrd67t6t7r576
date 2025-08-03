@@ -10,19 +10,47 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 
   <style>
-    body { background-color: #0f172a; }
+    body {
+      background-color: white;
+      color: #1e293b; 
+      font-family: 'Inter', sans-serif;
+      padding-top: 64px; 
+    }
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 64px;
+      background: white;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      z-index: 9999;
+    }
+    .header img {
+      height: 36px;
+      user-select: none;
+      pointer-events: none;
+    }
   </style>
 </head>
-<body class="text-white font-sans">
+<body>
+
+  <div class="sticky top-0 z-50 bg-white py-4 shadow-md flex justify-center">
+    <img src="sastra_brand.jpg" alt="Logo" class="h-20 w-auto" />
+  </div>
+
   <div class="max-w-6xl mx-auto p-6" id="pdfContent">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-indigo-300">Student Dashboard</h1>
-      <button id="downloadBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm">Download PDF</button>
+      <h1 class="text-2xl font-bold text-indigo-600">Student Dashboard</h1>
+      <button id="downloadBtn" class="bg-green-400 hover:bg-green-500 px-4 py-2 rounded-lg text-sm text-white font-semibold">Download PDF</button>
     </div>
 
-    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
-      <h2 id="studentName" class="text-3xl font-extrabold text-indigo-400 mb-4"></h2>
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-gray-300 text-sm">
+    <div class="bg-gray-100 rounded-2xl p-6 mb-6 shadow-md">
+      <h2 id="studentName" class="text-3xl font-extrabold text-indigo-700 mb-4"></h2>
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-slate-700 text-sm">
         <p><strong>Reg No:</strong> <span id="studentRoll"></span></p>
         <p><strong>Class:</strong> <span id="studentClass"></span></p>
         <p><strong>CGPA:</strong> <span id="studentCGPA"></span></p>
@@ -30,31 +58,30 @@
       </div>
     </div>
 
-    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
-      <h3 class="text-xl font-semibold text-green-300 mb-4">Grade Overview</h3>
+    <div class="bg-gray-100 rounded-2xl p-6 mb-6 shadow-md">
+      <h3 class="text-xl font-semibold text-green-600 mb-4">Grade Overview</h3>
       <canvas id="gradeChart" height="200"></canvas>
     </div>
 
-    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
-      <h3 class="text-xl font-semibold text-yellow-300 mb-4">CIA 1 Marks</h3>
+    <div class="bg-gray-100 rounded-2xl p-6 mb-6 shadow-md">
+      <h3 class="text-xl font-semibold text-yellow-600 mb-4">CIA 1 Marks</h3>
       <canvas id="cia1Chart" height="200"></canvas>
     </div>
 
-
-    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
-      <h3 class="text-xl font-semibold text-yellow-300 mb-4">CIA 2 Marks</h3>
+    <div class="bg-gray-100 rounded-2xl p-6 mb-6 shadow-md">
+      <h3 class="text-xl font-semibold text-yellow-600 mb-4">CIA 2 Marks</h3>
       <canvas id="cia2Chart" height="200"></canvas>
     </div>
 
-    <div class="bg-gray-800 rounded-2xl p-6 mb-6 shadow-lg">
-      <h3 class="text-xl font-semibold text-yellow-300 mb-4">CIA 3 Marks</h3>
+    <div class="bg-gray-100 rounded-2xl p-6 mb-6 shadow-md">
+      <h3 class="text-xl font-semibold text-yellow-600 mb-4">CIA 3 Marks</h3>
       <canvas id="cia3Chart" height="200"></canvas>
     </div>
 
-    <div class="bg-gray-800 rounded-2xl p-6 shadow-lg">
-      <h3 class="text-xl font-semibold text-pink-400 mb-4">Mentor Feedback</h3>
+    <div class="bg-gray-100 rounded-2xl p-6 shadow-md">
+      <h3 class="text-xl font-semibold text-pink-600 mb-4">Mentor Feedback</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
-        <div id="mentorFeedbackContent" class="text-gray-200 text-base space-y-2">
+        <div id="mentorFeedbackContent" class="text-slate-700 text-base space-y-2">
           <p id="mentorFeedbackText">Loading...</p>
         </div>
         <div class="flex justify-center">
@@ -64,7 +91,7 @@
     </div>
   </div>
 
-  <script type="module">
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -114,170 +141,168 @@
   }
 
   function renderGradeChart(subjects = {}) {
-  const labels = [];
-  const dataValues = [];
-  const gradeLabels = [];
-  const backgroundColors = [];
+    const labels = [];
+    const dataValues = [];
+    const gradeLabels = [];
+    const backgroundColors = [];
 
-  Object.entries(subjects).forEach(([subject, value]) => {
-    let grade;
-    if (value === "E" || value === "e") {
-      grade = "E";
-    } else if (typeof value === "string") {
-      grade = value.toUpperCase().trim();
-    } else {
-      grade = percentToGrade(value);
-    }
+    Object.entries(subjects).forEach(([subject, value]) => {
+      let grade;
+      if (value === "E" || value === "e") {
+        grade = "E";
+      } else if (typeof value === "string") {
+        grade = value.toUpperCase().trim();
+      } else {
+        grade = percentToGrade(value);
+      }
 
-    labels.push(subject);
-    gradeLabels.push(grade);
-    backgroundColors.push(grade === "F" || grade === "E" ? "#ef4444" : "#38bdf8");
-    dataValues.push(gradeToPoint(grade)); 
-  });
+      labels.push(subject);
+      gradeLabels.push(grade);
+      backgroundColors.push(grade === "F" || grade === "E" ? "#ef4444" : "#38bdf8");
+      dataValues.push(gradeToPoint(grade)); 
+    });
 
-  const gradeScale = {
-    0: "E",
-    2: "F",
-    5: "D",
-    6: "C",
-    7: "B",
-    8: "A",
-    9: "A+",
-    10: "S"
-  };
+    const gradeScale = {
+      0: "E",
+      2: "F",
+      5: "D",
+      6: "C",
+      7: "B",
+      8: "A",
+      9: "A+",
+      10: "S"
+    };
 
-  new Chart(document.getElementById("gradeChart"), {
-    type: "bar",
-    data: {
-      labels: labels,
-      datasets: [{
-        label: "Grades",
-        data: dataValues,
-        backgroundColor: backgroundColors,
-        borderRadius: 6
-      }]
-    },
-    options: {
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 10,
-          ticks: {
-            callback: function(value) {
-              return gradeScale[value] || "";
-            },
-            stepSize: 1
+    new Chart(document.getElementById("gradeChart"), {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Grades",
+          data: dataValues,
+          backgroundColor: backgroundColors,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 10,
+            ticks: {
+              callback: function(value) {
+                return gradeScale[value] || "";
+              },
+              stepSize: 1
+            }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `Grade: ${gradeLabels[ctx.dataIndex]}`
+            }
+          },
+          datalabels: {
+            anchor: 'end',
+            align: 'top',
+            formatter: (value, context) => gradeLabels[context.dataIndex],
+            color: '#1e293b',
+            font: { weight: 'bold', size: 14 }
           }
         }
       },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `Grade: ${gradeLabels[ctx.dataIndex]}`
-          }
-        },
-        datalabels: {
-          anchor: 'end',
-          align: 'top',
-          formatter: (value, context) => gradeLabels[context.dataIndex],
-          color: '#fff',
-          font: { weight: 'bold', size: 14 }
-        }
-      }
-    },
-    plugins: [ChartDataLabels]
-  });
-}
-
-
-  function gradeToPoint(grade) {
-  const map = {
-    "S": 10,
-    "A+": 9,
-    "A": 8,
-    "B": 7,
-    "C": 6,
-    "D": 5,
-    "F": 2,
-    "E": 0 
-  };
-  return map[grade] ?? 0;
-}
-
-function percentToGrade(percent) {
-  if (percent === "E") return "E"; 
-  percent = Number(percent);
-  if (percent >= 91) return "S";
-  if (percent >= 86) return "A+";
-  if (percent >= 75) return "A";
-  if (percent >= 66) return "B";
-  if (percent >= 55) return "C";
-  if (percent >= 50) return "D";
-  if (percent < 50) return "F";
-  return "E";
-}
-
- function renderCIAChart(ciaLabel, canvasId, ciaMarks = {}) {
-  const labels = ["Course 1", "Course 2", "Course 3", "Course 4", "Course 5", "Course 6"];
-  const values = [];
-  const colors = [];
-  const displayLabels = [];
-
-  for (let i = 1; i <= 6; i++) {
-    const key = `${ciaLabel} - Course ${i}`;
-    const rawMark = ciaMarks[key];
-    
-    if (typeof rawMark === "string" && rawMark.trim().toLowerCase() === "absent") {
-      values.push(50); 
-      colors.push("#facc15"); 
-      displayLabels.push("Absent");
-    } else {
-      const mark = Number(rawMark ?? 0);
-      values.push(mark);
-      colors.push(mark < 25 ? "#ef4444" : "#22c55e");
-      displayLabels.push(mark.toString());
-    }
+      plugins: [ChartDataLabels]
+    });
   }
 
-  new Chart(document.getElementById(canvasId), {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        label: `${ciaLabel} Marks`,
-        data: values,
-        backgroundColor: colors,
-        borderRadius: 6
-      }]
-    },
-    options: {
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 50
-        }
+  function gradeToPoint(grade) {
+    const map = {
+      "S": 10,
+      "A+": 9,
+      "A": 8,
+      "B": 7,
+      "C": 6,
+      "D": 5,
+      "F": 2,
+      "E": 0 
+    };
+    return map[grade] ?? 0;
+  }
+
+  function percentToGrade(percent) {
+    if (percent === "E") return "E"; 
+    percent = Number(percent);
+    if (percent >= 91) return "S";
+    if (percent >= 86) return "A+";
+    if (percent >= 75) return "A";
+    if (percent >= 66) return "B";
+    if (percent >= 55) return "C";
+    if (percent >= 50) return "D";
+    if (percent < 50) return "F";
+    return "E";
+  }
+
+  function renderCIAChart(ciaLabel, canvasId, ciaMarks = {}) {
+    const labels = ["Course 1", "Course 2", "Course 3", "Course 4", "Course 5", "Course 6"];
+    const values = [];
+    const colors = [];
+    const displayLabels = [];
+
+    for (let i = 1; i <= 6; i++) {
+      const key = `${ciaLabel} - Course ${i}`;
+      const rawMark = ciaMarks[key];
+      
+      if (typeof rawMark === "string" && rawMark.trim().toLowerCase() === "absent") {
+        values.push(50); 
+        colors.push("#facc15"); 
+        displayLabels.push("Absent");
+      } else {
+        const mark = Number(rawMark ?? 0);
+        values.push(mark);
+        colors.push(mark < 25 ? "#ef4444" : "#22c55e");
+        displayLabels.push(mark.toString());
+      }
+    }
+
+    new Chart(document.getElementById(canvasId), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: `${ciaLabel} Marks`,
+          data: values,
+          backgroundColor: colors,
+          borderRadius: 6
+        }]
       },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `Mark: ${displayLabels[ctx.dataIndex]}`
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 50
           }
         },
-        datalabels: {
-          anchor: 'end',
-          align: 'top',
-          color: '#fff',
-          font: { weight: 'bold', size: 14 },
-          formatter: (_, context) => displayLabels[context.dataIndex]
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `Mark: ${displayLabels[ctx.dataIndex]}`
+            }
+          },
+          datalabels: {
+            anchor: 'end',
+            align: 'top',
+            color: '#1e293b',
+            font: { weight: 'bold', size: 14 },
+            formatter: (_, context) => displayLabels[context.dataIndex]
+          }
         }
-      }
-    },
-    plugins: [ChartDataLabels]
-  });
-}
-
+      },
+      plugins: [ChartDataLabels]
+    });
+  }
 
   function renderMentorFeedback(feedback = {}) {
     const perf = parseFloat(feedback.performance) || 0;
@@ -293,7 +318,7 @@ function percentToGrade(percent) {
         labels: ["Achieved", "Remaining"],
         datasets: [{
           data: [perf, 100 - perf],
-          backgroundColor: ["#10b981", "#1e293b"]
+          backgroundColor: ["#10b981", "#e2e8f0"] 
         }]
       },
       options: {
@@ -322,11 +347,9 @@ function percentToGrade(percent) {
       reader.onloadend = () => {
         const base64data = reader.result.split(',')[1];
 
-
         if (window.AndroidDownloader && typeof window.AndroidDownloader.saveBase64Pdf === 'function') {
           window.AndroidDownloader.saveBase64Pdf(base64data);
         } else {
-        
           const blobUrl = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = blobUrl;
@@ -341,6 +364,7 @@ function percentToGrade(percent) {
     });
   });
 </script>
+
 <script>
   let touchStartX = 0;
   let touchEndX = 0;
@@ -365,7 +389,6 @@ function percentToGrade(percent) {
     }
   }
 </script>
-
 
 </body>
 </html>
