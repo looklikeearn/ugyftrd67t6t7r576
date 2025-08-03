@@ -5,16 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Student Projects</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+  </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen px-4 py-6">
+<body class="bg-white text-black min-h-screen px-4 py-4">
 
-  <h1 class="text-3xl font-bold mb-6 text-center text-yellow-400">📁 Student Projects</h1>
-
-  <div class="flex justify-center mb-6">
-    <input id="search" type="text" placeholder="Search by name, reg no, or dept..." class="w-full max-w-xl px-4 py-2 rounded-lg text-black focus:outline-none">
+  <div class="sticky top-0 z-50 bg-white py-4 shadow-md flex justify-center">
+    <img src="sastra_brand.jpg" alt="Logo" class="h-20 w-auto" />
   </div>
 
-  <div id="projectList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+  <h1 class="text-2xl font-bold text-blue-700 text-center mb-6">📁 Student Projects</h1>
+
+  <div class="flex justify-center mb-6">
+    <input id="search" type="text" placeholder="Search by name, reg no, or dept..." class="w-full max-w-xl px-4 py-2 rounded-lg border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+  </div>
+
+  <div id="projectList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-2 pb-10"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -42,7 +51,6 @@
       const allStudents = querySnapshot.docs.map(doc => doc.data());
 
       students = allStudents.filter(s => s.projectDesc && s.projectDesc.trim() !== "");
-
       renderList(students);
     }
 
@@ -50,15 +58,15 @@
       projectListEl.innerHTML = '';
       data.forEach(s => {
         const card = document.createElement('div');
-        card.className = "bg-gray-800 p-4 rounded-lg hover:bg-yellow-600 transition cursor-pointer";
+        card.className = "bg-gray-100 border border-blue-500 p-4 rounded-lg shadow hover:shadow-lg transition cursor-pointer";
 
         card.innerHTML = `
-          <h2 class="text-xl font-bold">${s.name || "Unknown"}</h2>
-          <p>Reg No: ${s.roll || "N/A"}</p>
-          <p>Dept: ${s.class || "N/A"}</p>
+          <h2 class="text-lg font-bold text-blue-800">${s.name || "Unknown"}</h2>
+          <p class="text-sm">Reg No: <span class="font-medium">${s.roll || "N/A"}</span></p>
+          <p class="text-sm">Dept: <span class="font-medium">${s.class || "N/A"}</span></p>
           <div class="mt-2">
             <p class="font-semibold">Project:</p>
-            <p class="italic text-sm">${s.projectDesc}</p>
+            <p class="italic text-sm text-gray-700">${s.projectDesc}</p>
           </div>
         `;
 
@@ -74,8 +82,8 @@
       const query = searchInput.value.toLowerCase();
       const filtered = students.filter(s =>
         (s.name || '').toLowerCase().includes(query) ||
-        (s.id || '').toLowerCase().includes(query) ||
-        (s.cgpa || '').toString().toLowerCase().includes(query)
+        (s.roll || '').toLowerCase().includes(query) ||
+        (s.class || '').toLowerCase().includes(query)
       );
       renderList(filtered);
     });
