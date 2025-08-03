@@ -9,19 +9,24 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
-<body class="bg-gray-900 text-white px-4 py-6 min-h-screen">
+<body class="bg-white text-gray-900 px-4 py-6 min-h-screen font-sans">
 
-  <h1 class="text-2xl font-bold mb-4 text-center text-yellow-400">Subjects with Arrears</h1>
-
-  <div class="mb-4">
-    <input id="search" type="text" placeholder="Search subject..." class="w-full px-4 py-2 rounded text-black focus:outline-none text-sm" />
+  <div class="sticky top-0 z-50 bg-white py-4 shadow-md flex justify-center">
+    <img src="sastra_brand.jpg" alt="Logo" class="h-20 w-auto" />
   </div>
+
+  <div class="flex justify-center mb-4">
+    <h1 class="text-xl font-bold text-blue-700 text-center">Subject-wise Arrears</h1>
+  </div>
+
+  <input id="search" type="text" placeholder="Search subject..." 
+         class="w-full mb-4 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
 
   <div class="overflow-x-auto mb-6">
     <canvas id="subjectChart" class="w-full max-w-full" style="max-height: 300px;"></canvas>
   </div>
 
-  <div id="subjectList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  <div id="subjectList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pb-8"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -51,20 +56,19 @@
         const data = doc.data();
         if (data.subjects) {
           Object.entries(data.subjects).forEach(([sub, value]) => {
-            if (value === 'F' || value === 'f' || value === 'E' || value === 'e') {
+            if (["F", "f", "E", "e"].includes(value)) {
               subjectData[sub] = (subjectData[sub] || 0) + 1;
             }
           });
         }
       });
-
       renderChart();
       renderList();
     }
 
     function renderChart() {
       const sortedSubjects = Object.entries(subjectData).sort((a, b) => b[1] - a[1]);
-      const topSubjects = sortedSubjects.slice(0, 15);
+      const topSubjects = sortedSubjects.slice(0, 10);
       const labels = topSubjects.map(([subject]) => subject);
       const values = topSubjects.map(([_, count]) => count);
 
@@ -78,9 +82,9 @@
           datasets: [{
             label: "Arrear Count",
             data: values,
-            backgroundColor: 'rgba(255, 99, 132, 0.8)',
+            backgroundColor: '#2563eb',
             borderRadius: 6,
-            barThickness: 28
+            barThickness: 30
           }]
         },
         options: {
@@ -89,7 +93,7 @@
           plugins: {
             legend: { display: false },
             datalabels: {
-              color: '#fff',
+              color: '#000',
               anchor: 'end',
               align: 'top',
               font: { size: 10, weight: 'bold' }
@@ -98,10 +102,10 @@
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { color: '#ccc', stepSize: 1 }
+              ticks: { stepSize: 1, color: '#666' }
             },
             x: {
-              ticks: { color: '#ccc', autoSkip: false, maxRotation: 45, font: { size: 10 } }
+              ticks: { color: '#333', font: { size: 10 } }
             }
           }
         },
@@ -111,16 +115,13 @@
 
     function renderList() {
       subjectListEl.innerHTML = '';
-
-      // Sort subjectData by arrear count descending
       const sortedSubjects = Object.entries(subjectData).sort((a, b) => b[1] - a[1]);
-
       sortedSubjects.forEach(([subject, count]) => {
         const card = document.createElement('div');
-        card.className = "bg-gray-800 p-4 rounded hover:bg-yellow-700 transition cursor-pointer text-sm";
+        card.className = "bg-white border border-gray-300 shadow-sm rounded p-3 hover:bg-blue-100 transition cursor-pointer";
         card.innerHTML = `
-          <h2 class="font-bold text-lg text-yellow-300">${subject}</h2>
-          <p class="mt-1">Arrear Count: ${count}</p>
+          <h2 class="text-lg font-semibold text-blue-700">${subject}</h2>
+          <p class="text-sm mt-1 text-gray-600">Arrear Count: ${count}</p>
         `;
         card.onclick = () => {
           window.location.href = `wise2.html?subject=${encodeURIComponent(subject)}`;
@@ -133,15 +134,15 @@
       const query = searchInput.value.toLowerCase();
       const filteredSubjects = Object.entries(subjectData)
         .filter(([sub]) => sub.toLowerCase().includes(query))
-        .sort((a, b) => b[1] - a[1]); // keep sorted order on search
+        .sort((a, b) => b[1] - a[1]);
 
       subjectListEl.innerHTML = '';
       filteredSubjects.forEach(([subject, count]) => {
         const card = document.createElement('div');
-        card.className = "bg-gray-800 p-4 rounded hover:bg-yellow-700 transition cursor-pointer text-sm";
+        card.className = "bg-white border border-gray-300 shadow-sm rounded p-3 hover:bg-blue-100 transition cursor-pointer";
         card.innerHTML = `
-          <h2 class="font-bold text-lg text-yellow-300">${subject}</h2>
-          <p class="mt-1">Arrear Count: ${count}</p>
+          <h2 class="text-lg font-semibold text-blue-700">${subject}</h2>
+          <p class="text-sm mt-1 text-gray-600">Arrear Count: ${count}</p>
         `;
         card.onclick = () => {
           window.location.href = `wise2.html?subject=${encodeURIComponent(subject)}`;
