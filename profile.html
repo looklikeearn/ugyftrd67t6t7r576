@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login | SASTRA Staff</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-auth-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #ffffff;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
+
+  <div class="sticky top-0 z-50 bg-white py-4 shadow-md w-full flex justify-center">
+    <img src="sastra_brand.jpg" alt="SASTRA Logo" class="h-20 w-auto" />
+  </div>
+
+  <div class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl border mt-6 space-y-6">
+    <h2 class="text-2xl font-bold text-center text-blue-600">🔐 Faculty Login</h2>
+
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label for="userid" class="block text-sm font-medium text-gray-700">User ID</label>
+        <input id="userid" type="email" placeholder="srcstaff@sastra.fun"
+          class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          required />
+      </div>
+      <div>
+        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+        <input id="password" type="password" placeholder="Enter password"
+          class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          required />
+      </div>
+      <button type="submit"
+        class="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition">
+        Login
+      </button>
+      <p id="error" class="text-center text-red-600 text-sm hidden">❌ Incorrect login. Please try again.</p>
+    </form>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
+      authDomain: "test-d6f13.firebaseapp.com",
+      projectId: "test-d6f13",
+      storageBucket: "test-d6f13.appspot.com",
+      messagingSenderId: "1043978393185",
+      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20",
+      measurementId: "G-VLTFR2GXGS"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    const loginForm = document.getElementById('loginForm');
+    const errorMessage = document.getElementById('error');
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const user = document.getElementById('userid').value.trim();
+      const pass = document.getElementById('password').value.trim();
+
+      if (user !== 'srcstaff@sastra.fun') {
+        errorMessage.classList.remove('hidden');
+        return;
+      }
+
+      firebase.auth().signInWithEmailAndPassword(user, pass)
+        .then(() => {
+          localStorage.setItem('facultyLoggedIn', 'true');
+          window.location.href = 'index.html';
+        })
+        .catch(() => {
+          errorMessage.classList.remove('hidden');
+        });
+    });
+  </script>
+
+</body>
+</html>
