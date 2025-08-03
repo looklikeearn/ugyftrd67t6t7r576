@@ -20,7 +20,7 @@
     <img src="sastra_brand.jpg" alt="SASTRA Logo" class="h-20 w-auto" />
   </div>
 
-  <div id="loginCard" class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl border mt-6 space-y-6">
+  <div class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl border mt-6 space-y-6">
     <h2 class="text-2xl font-bold text-center text-blue-600">🔐 Faculty Login</h2>
 
     <form id="loginForm" class="space-y-4">
@@ -36,16 +36,12 @@
           class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
           required />
       </div>
-      <button type="submit"
+      <button id="loginBtn" type="submit"
         class="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition">
         Login
       </button>
       <p id="error" class="text-center text-red-600 text-sm hidden">❌ Incorrect login. Please try again.</p>
     </form>
-  </div>
-
-  <div id="welcomeMessage" class="hidden text-center mt-6 text-xl font-semibold text-green-700">
-    ✅ You are successfully logged in.
   </div>
 
   <script>
@@ -63,8 +59,7 @@
 
     const loginForm = document.getElementById('loginForm');
     const errorMessage = document.getElementById('error');
-    const loginCard = document.getElementById('loginCard');
-    const welcomeMessage = document.getElementById('welcomeMessage');
+    const loginBtn = document.getElementById('loginBtn');
 
     loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -76,22 +71,17 @@
         return;
       }
 
+      loginBtn.classList.add('hidden');
+
       firebase.auth().signInWithEmailAndPassword(user, pass)
         .then(() => {
           localStorage.setItem('facultyLoggedIn', 'true');
-          loginCard.classList.add('hidden');
-          welcomeMessage.classList.remove('hidden');   
+          window.location.href = 'index.html';
         })
         .catch(() => {
           errorMessage.classList.remove('hidden');
+          loginBtn.classList.remove('hidden');
         });
-    });
-
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user && user.email === 'srcstaff@sastra.fun') {
-        loginCard.classList.add('hidden');
-        welcomeMessage.classList.remove('hidden');
-      }
     });
   </script>
 
