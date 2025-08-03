@@ -1,20 +1,39 @@
-<!DOCTYPE html>   
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Student Dashboard</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
-      padding: 20px;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #000;
+      padding: 2rem;
+      font-family: 'Poppins', sans-serif;
+      background: #ffffff;
+      color: #0105fc;
       display: flex;
       flex-direction: column;
       align-items: center;
       min-height: 100vh;
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 1rem;
+      color: #030d92;
+    }
+
+    h2::first-letter {
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+
+    img {
+      max-width: 100%;
+      width: 360px;
+      margin-bottom: 1.5rem;
     }
 
     .grid-container {
@@ -22,7 +41,7 @@
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 16px;
       width: 100%;
-      max-width: 500px;
+      max-width: 600px;
     }
 
     .btn {
@@ -30,7 +49,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #27026b, #0895c4);
+      background: linear-gradient(135deg, #5500f3, #7281d6);
       border: none;
       border-radius: 14px;
       text-decoration: none;
@@ -39,6 +58,7 @@
       aspect-ratio: 1 / 1;
       transition: transform 0.2s ease, background 0.2s ease;
       color: #fff;
+      font-weight: 600;
     }
 
     .btn:hover {
@@ -60,80 +80,58 @@
         font-size: 2rem;
       }
     }
+
+    #logoutContainer {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      z-index: 1000;
+    }
+
+    #logoutBtn {
+      background: #ef4444;
+      color: white;
+      padding: 0.5rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    #logoutBtn:hover {
+      background-color: #dc2626;
+    }
   </style>
 </head>
 <body>
 
+  <img src="sastra_brand.jpg" alt="SASTRA University Logo" />
+
+  
+  <h2>Sastra Student Dashboard</h2>
+
   <div class="grid-container">
-    <a href="all.html" class="btn">
-      <i class="fas fa-trophy" style="color: gold;"></i>
-      All Rank
-    </a>
-    <a href="arrear.html" class="btn">
-      <i class="fas fa-times-circle" style="color: red;"></i>
-      Arrears
-    </a>
-    <a href="all2.html" class="btn">
-      <i class="fa-solid fa-chart-line" style="color: yellow;"></i>
-      Virtual View
-    </a>
-    <a href="core.html" class="btn">
-      <i class="fas fa-cogs" style="color: lightgreen;"></i>
-      Core
-    </a>
-    <a href="code.html" class="btn">
-      <i class="fas fa-code" style="color: deepskyblue;"></i>
-      Programming
-    </a>
-    <a href="wise.html" class="btn">
-      <i class="fa-solid fa-thumbs-down" style="color: red;"></i>
-      More Arrears Subject
-    </a>
-    <a href="perfom.html" class="btn">
-      <i class="fas fa-chart-line" style="color: orange;"></i>
-      Extra Performance
-    </a>
-    <a href="class.html" class="btn">
-      <i class="fas fa-users" style="color: violet;"></i>
-      Classes
-    </a>
-    <a href="unimproved.html" class="btn">
-      <i class="fas fa-arrow-down" style="color: cyan;"></i>
-      Improves
-    </a>
-    <a href="project.html" class="btn" title="View Projects">
-      <i class="fas fa-folder-open" style="color: #00ffcc;"></i>
-      Projects
-    </a>
-    <a href="viewmentor.html" class="btn" title="View Mentor Feedbacks">
-      <i class="fas fa-chalkboard-teacher" style="color: #ff9933;"></i>
-      Mentor Feedback
-    </a>
-    <a href="pass.html" class="btn" title="View Mentor Feedbacks">
-      <i class="fa-solid fa-child" style="color: #ff8933;"></i>
-      For Student
-    </a>    
-    <a href="enterpass.html" class="btn" title="Enter Details">
-      <i class="fas fa-key" style="color: #00bfff;"></i>
-      Enter Details
-    </a>
-    <a href="enter2.html" class="btn" title="Enter Details">
-      <i class="fas fa-file-import" style="color: #00bfff;"></i>
-      Enter Excel
-    </a>
-    <a href="mentor.html" class="btn" title="Enter Mentor Details">
-      <i class="fas fa-edit" style="color: #99cc00;"></i>
-      Enter Mentor Details
-    </a>
-    <a href="add.html" class="btn" title="Tutor Only">
-      <i class="fas fa-user-graduate" style="color: #66ffcc;"></i>
-      For Tutor
-    </a>
-    <a href="classpass.html" class="btn" title="Staff Only">
-      <i class="fas fa-unlock" style="color: #ccff33;"></i>
-      For Staff
-    </a>
+    <a href="all.html" class="btn"><i class="fas fa-trophy" style="color: gold;"></i>All Rank</a>
+    <a href="arrear.html" class="btn"><i class="fas fa-times-circle" style="color: red;"></i>Arrears</a>
+    <a href="all2.html" class="btn"><i class="fa-solid fa-chart-line" style="color: yellow;"></i>Virtual View</a>
+    <a href="core.html" class="btn"><i class="fas fa-cogs" style="color: lightgreen;"></i>Core</a>
+    <a href="code.html" class="btn"><i class="fas fa-code" style="color: deepskyblue;"></i>Programming</a>
+    <a href="wise.html" class="btn"><i class="fa-solid fa-thumbs-down" style="color: red;"></i>More Arrears Subject</a>
+    <a href="perfom.html" class="btn"><i class="fas fa-chart-line" style="color: orange;"></i>Extra Performance</a>
+    <a href="class.html" class="btn"><i class="fas fa-users" style="color: violet;"></i>Classes</a>
+    <a href="project.html" class="btn"><i class="fas fa-folder-open" style="color: #00ffcc;"></i>Projects</a>
+    <a href="viewmentor.html" class="btn"><i class="fas fa-chalkboard-teacher" style="color: #ff9933;"></i>Mentor Feedback</a>
+    <a href="pass.html" class="btn"><i class="fa-solid fa-child" style="color: #ff8933;"></i>For Student</a>
+    <a href="enterpass.html" class="btn"><i class="fas fa-key" style="color: #00bfff;"></i>Enter Details</a>
+    <a href="enter2.html" class="btn"><i class="fas fa-file-import" style="color: #00bfff;"></i>Enter Excel</a>
+    <a href="mentor.html" class="btn"><i class="fas fa-edit" style="color: #99cc00;"></i>Enter Mentor Details</a>
+    <a href="add.html" class="btn"><i class="fas fa-user-graduate" style="color: #66ffcc;"></i>For Tutor</a>
+    <a href="classpass.html" class="btn"><i class="fas fa-unlock" style="color: #ccff33;"></i>For Staff</a>
   </div>
+
 
 </body>
 </html>
