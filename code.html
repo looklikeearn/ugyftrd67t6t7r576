@@ -5,18 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Programming Interested Students</title>
 
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Poppins', sans-serif; }
+  </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen px-4 py-6">
-  <h1 class="text-3xl font-bold mb-6 text-center text-green-400">🎯 Programming Interested Students</h1>
+<body class="bg-white text-gray-800 min-h-screen px-4 py-6">
+
+<div class="sticky top-0 z-50 bg-white py-4 shadow-md flex justify-center">
+    <img src="sastra_brand.jpg" alt="Logo" class="h-20 w-auto" />
+  </div>
+  <h1 class="text-2xl sm:text-3xl font-bold text-center mb-4 bg-gradient-to-r from-blue-900 to-blue-600 text-white py-2 rounded-lg">
+    🎯 Programming Interested Students
+  </h1>
 
   <div class="flex justify-center mb-6">
-    <input id="search" type="text" placeholder="Search by name, class or roll" class="w-full max-w-xl px-4 py-2 rounded-lg text-black focus:outline-none">
+    <input id="search" type="text" placeholder="Search by name, class or roll"
+      class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300" />
   </div>
 
-  <div class="overflow-x-auto mb-10">
+  <div class="overflow-x-auto mb-8">
     <canvas id="progChart" class="w-full"></canvas>
   </div>
 
@@ -88,7 +100,7 @@
           plugins: {
             legend: { display: false },
             datalabels: {
-              color: '#fff',
+              color: '#000',
               anchor: 'end',
               align: 'top',
               font: { weight: 'bold' }
@@ -106,10 +118,10 @@
       studentListEl.innerHTML = '';
       data.forEach(s => {
         const card = document.createElement('div');
-        card.className = "bg-gray-800 p-4 rounded-lg hover:bg-green-600 transition cursor-pointer";
+        card.className = "bg-gray-100 p-4 rounded-xl shadow hover:shadow-lg transition cursor-pointer";
         card.innerHTML = `
-          <h2 class="text-xl font-bold">${s.name}</h2>
-          <p>Reg No: ${s.roll}</p>
+          <h2 class="text-lg font-bold text-blue-600">${s.name}</h2>
+          <p>Reg No: <span class="font-medium">${s.roll}</span></p>
           <p>Class: ${s.class}</p>
           <p>CGPA: ${s.cgpa}</p>
           <p>Core Perf: ${s.corePerf}%</p>
@@ -126,8 +138,8 @@
       const query = searchInput.value.toLowerCase();
       const filtered = students.filter(s =>
         (s.name || '').toLowerCase().includes(query) ||
-        (s.class || '').toLowerCase().includes(query) ||
-        (s.roll || '').toLowerCase().includes(query)
+        (s.id || '').toLowerCase().includes(query) ||
+        (s.roll || '').toString().toLowerCase().includes(query)
       );
       renderList(filtered);
     });
