@@ -8,20 +8,33 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-</head>
-<body class="bg-gray-900 text-white min-h-screen px-4 py-6">
 
-  <h1 class="text-3xl font-bold mb-6 text-center text-red-400">Students with Arrears</h1>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+</head>
+
+<body class="bg-white text-black min-h-screen px-4 py-4">
+
+  <div class="sticky top-0 z-50 bg-white py-4 shadow-md flex justify-center">
+    <img src="sastra_brand.jpg" alt="Logo" class="h-20 w-auto" />
+  </div>
+ 
+  <h1 class="text-2xl font-bold text-center mb-4 text-red-600">Students with Arrears</h1>
 
   <div class="flex justify-center mb-6">
-    <input id="search" type="text" placeholder="Search by name, reg no, or arrears..." class="w-full max-w-xl px-4 py-2 rounded-lg text-black focus:outline-none text-sm">
+    <input id="search" type="text" placeholder="Search by name, reg no, or arrears..." 
+      class="w-full max-w-xl px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400">
   </div>
 
-  <div class="overflow-x-auto mb-10">
+  <div class="overflow-x-auto mb-6">
     <canvas id="arrearChart" class="w-full" style="max-height: 300px;"></canvas>
   </div>
 
-  <div id="studentList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+  <div id="studentList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -89,9 +102,9 @@
           datasets: [{
             label: "Total Arrears",
             data: arrears,
-            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+            backgroundColor: 'rgba(220, 38, 38, 0.9)', 
             borderRadius: 10,
-            barThickness: 20
+            barThickness: 22
           }]
         },
         options: {
@@ -100,7 +113,7 @@
           plugins: {
             legend: { display: false },
             datalabels: {
-              color: '#fff',
+              color: '#000',
               anchor: 'end',
               align: 'top',
               font: { weight: 'bold', size: 10 }
@@ -109,10 +122,10 @@
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { color: '#ccc', stepSize: 1 }
+              ticks: { stepSize: 1 }
             },
             x: {
-              ticks: { color: '#ccc', autoSkip: false, maxRotation: 45, font: { size: 10 } }
+              ticks: { autoSkip: false, maxRotation: 45, font: { size: 10 } }
             }
           }
         },
@@ -124,14 +137,14 @@
       studentListEl.innerHTML = '';
       data.forEach(s => {
         const card = document.createElement('div');
-        card.className = "bg-gray-800 p-4 rounded-lg hover:bg-red-600 transition cursor-pointer";
+        card.className = "bg-red-50 p-4 rounded-xl shadow hover:bg-red-100 transition border border-red-200";
         card.innerHTML = `
-          <h2 class="text-lg font-bold">${s.name}</h2>
-          <p>Reg No: ${s.roll}</p>
-          <p>Total Arrears: ${s.totalArrears}</p>
+          <h2 class="text-base font-semibold text-red-700">${s.name}</h2>
+          <p class="text-sm text-gray-800">Reg No: ${s.roll}</p>
+          <p class="text-sm text-gray-800">Total Arrears: <span class="font-bold text-red-600">${s.totalArrears}</span></p>
         `;
         card.onclick = () => {
-          window.location.href = `view.html?roll=${s.roll}`;
+          window.location.href = `view.html?roll=${s.roll};`;
         };
         studentListEl.appendChild(card);
       });
@@ -141,7 +154,7 @@
       const query = searchInput.value.toLowerCase();
       const filtered = students.filter(s =>
         (s.name || '').toLowerCase().includes(query) ||
-        (s.roll || '').toString().toLowerCase().includes(query) ||
+        (s.roll || '').toString().includes(query) ||
         s.totalArrears.toString().includes(query)
       );
       renderList(filtered);
