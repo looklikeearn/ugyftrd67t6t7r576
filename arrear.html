@@ -144,7 +144,7 @@
           <p class="text-sm text-gray-800">Total Arrears: <span class="font-bold text-red-600">${s.totalArrears}</span></p>
         `;
         card.onclick = () => {
-          window.location.href = `view.html?roll=${s.roll};`;
+          window.location.href = `view.html?roll=${s.roll}`;
         };
         studentListEl.appendChild(card);
       });
@@ -164,3 +164,4 @@
   </script>
 </body>
 </html>
+
