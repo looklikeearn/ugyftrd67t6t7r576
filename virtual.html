@@ -402,7 +402,7 @@ if (data.extraPerformance && data.extraPerformance.trim() !== "") {
   });
 
   function handleSwipeGesture() {
-    const swipeThreshold = 50;
+    const swipeThreshold = 90;
     if (Math.abs(touchEndX - touchStartX) > swipeThreshold) {
       const params = new URLSearchParams(window.location.search);
       const roll = params.get("roll");
