@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Student Chat View</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .header {
+      background-color: #4264fa;
+      color: white;
+      padding: 16px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 50;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .chat-container {
+      flex: 1;
+      padding: 80px 10px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message {
+      background-color: white;
+      margin: 8px 10px;
+      padding: 12px 15px;
+      border-radius: 10px;
+      max-width: 70%;
+      word-wrap: break-word;
+      align-self: flex-start;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    .message .chat-image {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 5px;
+      cursor: pointer;
+    }
+
+    .file-link {
+      text-decoration: underline;
+      color: #333;
+      margin-top: 5px;
+      display: block;
+    }
+
+    .meta {
+      font-size: 11px;
+      color: #666;
+      margin-top: 8px;
+      text-align: right;
+    }
+
+    .preview-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      flex-direction: column;
+    }
+
+    .preview-overlay img {
+      max-width: 90%;
+      max-height: 80%;
+      border-radius: 10px;
+    }
+
+    .preview-overlay button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    Message from Dean
+  </div>
+
+  <div class="chat-container" id="chat"></div>
+
+  <div class="preview-overlay" id="previewOverlay">
+    <img id="previewImage" src="" alt="Preview" />
+    <button onclick="closePreview()">Close</button>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
+      authDomain: "test-d6f13.firebaseapp.com",
+      projectId: "test-d6f13",
+      storageBucket: "test-d6f13.appspot.com",
+      messagingSenderId: "1043978393185",
+      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const chat = document.getElementById('chat');
+    const previewOverlay = document.getElementById('previewOverlay');
+    const previewImage = document.getElementById('previewImage');
+
+    function timeAgo(date) {
+      const seconds = Math.floor((new Date() - date) / 1000);
+      const intervals = {
+        year: 31536000,
+        month: 2592000,
+        week: 604800,
+        day: 86400,
+        hour: 3600,
+        minute: 60,
+        second: 1,
+      };
+      for (const [unit, value] of Object.entries(intervals)) {
+        const count = Math.floor(seconds / value);
+        if (count >= 1) {
+          return `${count} ${unit}${count > 1 ? 's' : ''} ago`;
+        }
+      }
+      return "just now";
+    }
+
+    function displayMessage(doc) {
+      const data = doc.data();
+      const div = document.createElement("div");
+      div.className = "message";
+
+      if (data.message) {
+        const msg = document.createElement("div");
+        msg.innerText = data.message;
+        div.appendChild(msg);
+      }
+
+      if (data.fileUrl) {
+        const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(data.fileName);
+        if (isImage) {
+          const img = document.createElement("img");
+          img.src = data.fileUrl;
+          img.className = "chat-image";
+          img.style.cursor = "pointer";
+          img.addEventListener("click", () => showPreview(data.fileUrl));
+          div.appendChild(img);
+        } else {
+          const link = document.createElement("a");
+          link.href = data.fileUrl;
+          link.target = "_blank";
+          link.className = "file-link";
+          link.innerText = data.fileName || "Open File";
+          div.appendChild(link);
+        }
+      }
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.innerText = data.timestamp?.toDate ? timeAgo(data.timestamp.toDate()) : "Sending...";
+      div.appendChild(meta);
+
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function loadMessages() {
+      chat.innerHTML = ""; 
+      db.collection("dean")
+        .orderBy("timestamp", "asc")
+        .onSnapshot(snapshot => {
+          snapshot.docChanges().forEach(change => {
+            if (change.type === "added") {
+              displayMessage(change.doc);
+            }
+          });
+        });
+    }
+
+    function showPreview(imageUrl) {
+      previewImage.src = imageUrl;
+      previewOverlay.style.display = "flex";
+    }
+
+    function closePreview() {
+      previewOverlay.style.display = "none";
+      previewImage.src = "";
+    }
+
+    loadMessages();
+
+  </script>
+</body>
+</html>
