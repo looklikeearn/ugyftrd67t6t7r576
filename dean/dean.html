@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dean Chat</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: white;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .header {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 50;
+      background-color: white;
+      padding: 16px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: center;
+    }
+
+    .header img {
+      height: 80px;
+      width: auto;
+    }
+
+    .chat-container {
+      flex: 1;
+      padding: 120px 10px 100px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message {
+      margin: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 70%;
+      word-wrap: break-word;
+      background-color: #a4d5f7;
+      align-self: flex-end;
+      position: relative;
+    }
+
+    .meta {
+      font-size: 10px;
+      color: #000000;
+      margin-top: 5px;
+      text-align: right;
+    }
+
+    .chat-input {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      background-color: #f0f0f0;
+      padding: 10px;
+      z-index: 2;
+    }
+
+    .chat-input textarea {
+      width: 100%;
+      resize: none;
+      height: 60px;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      margin-bottom: 5px;
+    }
+
+    .chat-input .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-input input[type="file"] {
+      display: none;
+    }
+
+    .chat-input label {
+      font-size: 20px;
+      color: #1c03fd;
+      cursor: pointer;
+    }
+
+    .chat-input button {
+      padding: 10px 15px;
+      background-color: #3807ec;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .file-preview {
+      margin-top: 5px;
+      font-size: 14px;
+    }
+
+    progress {
+      width: 100%;
+      height: 10px;
+      display: none;
+      margin-top: 5px;
+    }
+
+    .preview-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      flex-direction: column;
+    }
+
+    .preview-overlay img {
+      max-width: 90%;
+      max-height: 80%;
+      border-radius: 10px;
+    }
+
+    .preview-overlay button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .chat-image {
+      max-width: 100%;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    .file-link {
+      text-decoration: underline;
+      color: #333;
+      margin-top: 5px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img src="sastra_brand.jpg" alt="Logo" />
+  </div>
+
+  <div class="chat-container" id="chat"></div>
+
+  <div class="chat-input">
+    <textarea id="messageInput" placeholder="Type your message..."></textarea>
+    <div class="actions">
+      <label for="fileInput"><i class="fas fa-paperclip"></i></label>
+      <input type="file" id="fileInput" />
+      <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i> Send</button>
+    </div>
+    <div class="file-preview" id="filePreview"></div>
+    <progress id="uploadProgress" value="0" max="100"></progress>
+  </div>
+
+  <div class="preview-overlay" id="previewOverlay">
+    <img id="previewImage" src="" alt="Preview" />
+    <button onclick="closePreview()">Cancel</button>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+
+  <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
+  authDomain: "test-d6f13.firebaseapp.com",
+  projectId: "test-d6f13",
+  storageBucket: "test-d6f13.appspot.com",
+  messagingSenderId: "1043978393185",
+  appId: "1:1043978393185:web:a40e50c013d7869b8cfc20"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const storage = firebase.storage();
+
+const chat = document.getElementById('chat');
+const fileInput = document.getElementById('fileInput');
+const filePreview = document.getElementById('filePreview');
+const uploadProgress = document.getElementById('uploadProgress');
+const previewOverlay = document.getElementById('previewOverlay');
+const previewImage = document.getElementById('previewImage');
+
+let uploadedFile = null;
+
+fileInput.addEventListener("change", () => {
+  uploadedFile = fileInput.files[0];
+  if (uploadedFile) {
+    filePreview.innerText = `Selected file: ${uploadedFile.name}`;
+  } else {
+    filePreview.innerText = "";
+  }
+});
+
+function timeAgo(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  const intervals = {
+    year: 31536000,
+    month: 2592000,
+    week: 604800,
+    day: 86400,
+    hour: 3600,
+    minute: 60,
+    second: 1,
+  };
+  for (const [unit, value] of Object.entries(intervals)) {
+    const count = Math.floor(seconds / value);
+    if (count >= 1) {
+      return `${count} ${unit}${count > 1 ? 's' : ''} ago`;
+    }
+  }
+  return "just now";
+}
+
+function displayMessage(doc) {
+  const data = doc.data();
+  const div = document.createElement("div");
+  div.className = "message";
+  div.dataset.id = doc.id;  // Save doc id for deletion
+
+  if (data.message) {
+    const msg = document.createElement("div");
+    msg.innerText = data.message;
+    div.appendChild(msg);
+  }
+
+  if (data.fileUrl) {
+    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(data.fileName);
+    if (isImage) {
+      const img = document.createElement("img");
+      img.src = data.fileUrl;
+      img.className = "chat-image";
+      img.style.cursor = "pointer";
+      img.addEventListener("click", () => showPreview(data.fileUrl));
+      div.appendChild(img);
+    } else {
+      const link = document.createElement("a");
+      link.href = data.fileUrl;
+      link.target = "_blank";
+      link.className = "file-link";
+      link.innerText = data.fileName || "Open File";
+      div.appendChild(link);
+    }
+  }
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.innerText = data.timestamp?.toDate ? timeAgo(data.timestamp.toDate()) : "Sending...";
+  div.appendChild(meta);
+
+  // Add delete button but hide it initially
+  const deleteBtn = document.createElement("button");
+  deleteBtn.innerText = "Delete";
+  deleteBtn.style.position = "absolute";
+  deleteBtn.style.top = "5px";
+  deleteBtn.style.right = "5px";
+  deleteBtn.style.background = "#f44336";
+  deleteBtn.style.color = "white";
+  deleteBtn.style.border = "none";
+  deleteBtn.style.borderRadius = "5px";
+  deleteBtn.style.padding = "5px 8px";
+  deleteBtn.style.cursor = "pointer";
+  deleteBtn.style.display = "none";
+  deleteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this message?")) {
+      db.collection("dean").doc(doc.id).delete()
+        .catch(err => alert("Failed to delete message: " + err.message));
+    }
+  });
+  div.appendChild(deleteBtn);
+
+  // Long press detection variables
+  let pressTimer = null;
+
+  div.addEventListener("touchstart", () => {
+    pressTimer = setTimeout(() => {
+      // Show delete button on long press
+      deleteBtn.style.display = "block";
+    }, 700); // 700ms for long press
+  });
+
+  div.addEventListener("touchend", () => {
+    clearTimeout(pressTimer);
+  });
+
+  // Also hide delete button on any tap outside or after some time
+  div.addEventListener("click", () => {
+    if (deleteBtn.style.display === "block") {
+      deleteBtn.style.display = "none";
+    }
+  });
+
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function loadMessages() {
+  chat.innerHTML = ""; // Clear before loading
+  db.collection("dean")
+    .orderBy("timestamp", "asc")
+    .onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === "added") {
+          displayMessage(change.doc);
+        }
+        if (change.type === "removed") {
+          // Remove message div when deleted
+          const msgDiv = chat.querySelector(`[data-id="${change.doc.id}"]`);
+          if (msgDiv) msgDiv.remove();
+        }
+      });
+    });
+}
+
+function sendMessage() {
+  const messageText = document.getElementById("messageInput").value.trim();
+
+  const saveMessage = (data) => {
+    db.collection("dean").add({
+      ...data,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      document.getElementById("messageInput").value = "";
+      fileInput.value = "";
+      filePreview.innerText = "";
+      uploadedFile = null;
+      uploadProgress.style.display = "none";
+      uploadProgress.value = 0;
+    }).catch(e => alert("Error sending message: " + e.message));
+  };
+
+  if (uploadedFile) {
+    const storageRef = storage.ref("deanFiles/" + Date.now() + "_" + uploadedFile.name);
+    const uploadTask = storageRef.put(uploadedFile);
+
+    uploadProgress.style.display = "block";
+
+    uploadTask.on("state_changed",
+      (snapshot) => {
+        const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        uploadProgress.value = percent;
+      },
+      (error) => {
+        alert("Upload failed: " + error.message);
+        uploadProgress.style.display = "none";
+      },
+      () => {
+        uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+          saveMessage({
+            message: messageText || null,
+            fileUrl: url,
+            fileName: uploadedFile.name
+          });
+        });
+      }
+    );
+  } else if (messageText) {
+    saveMessage({ message: messageText });
+  } else {
+    alert("Please enter a message or attach a file.");
+  }
+}
+
+function showPreview(imageUrl) {
+  previewImage.src = imageUrl;
+  previewOverlay.style.display = "flex";
+}
+
+function closePreview() {
+  previewOverlay.style.display = "none";
+  previewImage.src = "";
+}
+
+loadMessages();
+</script>
+
+</body>
+</html>
+   
