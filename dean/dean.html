@@ -246,7 +246,7 @@ function displayMessage(doc) {
   const data = doc.data();
   const div = document.createElement("div");
   div.className = "message";
-  div.dataset.id = doc.id;  // Save doc id for deletion
+  div.dataset.id = doc.id;  
 
   if (data.message) {
     const msg = document.createElement("div");
@@ -278,7 +278,7 @@ function displayMessage(doc) {
   meta.innerText = data.timestamp?.toDate ? timeAgo(data.timestamp.toDate()) : "Sending...";
   div.appendChild(meta);
 
-  // Add delete button but hide it initially
+  
   const deleteBtn = document.createElement("button");
   deleteBtn.innerText = "Delete";
   deleteBtn.style.position = "absolute";
@@ -300,21 +300,19 @@ function displayMessage(doc) {
   });
   div.appendChild(deleteBtn);
 
-  // Long press detection variables
   let pressTimer = null;
 
   div.addEventListener("touchstart", () => {
     pressTimer = setTimeout(() => {
-      // Show delete button on long press
+      
       deleteBtn.style.display = "block";
-    }, 700); // 700ms for long press
+    }, 1700); 
   });
 
   div.addEventListener("touchend", () => {
     clearTimeout(pressTimer);
   });
 
-  // Also hide delete button on any tap outside or after some time
   div.addEventListener("click", () => {
     if (deleteBtn.style.display === "block") {
       deleteBtn.style.display = "none";
@@ -326,7 +324,7 @@ function displayMessage(doc) {
 }
 
 function loadMessages() {
-  chat.innerHTML = ""; // Clear before loading
+  chat.innerHTML = ""; 
   db.collection("dean")
     .orderBy("timestamp", "asc")
     .onSnapshot(snapshot => {
@@ -335,7 +333,7 @@ function loadMessages() {
           displayMessage(change.doc);
         }
         if (change.type === "removed") {
-          // Remove message div when deleted
+          
           const msgDiv = chat.querySelector(`[data-id="${change.doc.id}"]`);
           if (msgDiv) msgDiv.remove();
         }
