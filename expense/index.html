@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Expense Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="min-h-screen bg-gray-100 font-sans">
+
+ 
+  <button id="menuToggle" class="fixed top-4 left-4 z-50 bg-white p-2 rounded-full shadow-md focus:outline-none">
+    <svg class="h-6 w-6 text-gray-700" fill="none" stroke="currentColor" stroke-width="2"
+      viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 6h16M4 12h16M4 18h16"></path>
+    </svg>
+  </button>
+
+  <div id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-40 transform -translate-x-full transition-transform">
+    <div class="p-6">
+      <h2 class="text-xl font-bold text-blue-600 mb-6">Menu</h2>
+      <nav class="space-y-4">
+        <a href="index.html" class="block text-gray-700 hover:text-blue-600">🏠 Home</a>
+        <a href="full.html" class="block text-gray-700 hover:text-blue-600">📜 History</a>
+        <button id="logoutBtn" class="block text-red-500 hover:underline">🚪 Logout</button>
+      </nav>
+    </div>
+  </div>
+
+  <div id="overlay" class="hidden fixed inset-0 bg-black opacity-30 z-30"></div>
+
+  <div class="max-w-xl mx-auto p-6">
+    <div class="bg-white p-6 rounded-xl shadow mb-6 flex justify-between items-center">
+      <div>
+        <h2 class="text-xl font-semibold text-blue-600" id="monthDisplay"></h2>
+        <p class="text-sm text-gray-600" id="dateDisplay"></p>
+        <p class="text-sm text-gray-500" id="timeDisplay"></p>
+      </div>
+      <div class="text-right">
+        <p class="text-sm text-gray-600">Today's Total</p>
+        <h3 class="text-2xl font-bold text-green-600" id="todayTotal">₹0.00</h3>
+      </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow space-y-4 mb-6">
+      <form id="expenseForm" class="space-y-4">
+        <input id="amount" type="number" step="0.01" placeholder="Amount (₹)" required
+          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        <input id="description" type="text" placeholder="Description (optional)"
+          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        <button type="submit"
+          class="w-full py-3 bg-orange-600 text-white font-semibold rounded-xl hover:bg-orange-700 transition">
+          Save Expense
+        </button>
+      </form>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl shadow">
+      <h3 class="text-lg font-semibold mb-3">Today's Expenses</h3>
+      <ul id="expenseList" class="space-y-4 max-h-[400px] overflow-y-auto"></ul>
+    </div>
+  </div>
+
+  <script>
+  const firebaseConfig = {
+  apiKey: "AIzaSyAPrVzvydC3GuoMe_ztdOi0CBhvg-Cckxw",
+  authDomain: "crobot-tech.firebaseapp.com",
+  projectId: "crobot-tech",
+  storageBucket: "crobot-tech.firebasestorage.app",
+  messagingSenderId: "913013774056",
+  appId: "1:913013774056:web:b00707f1d9c5f357389b5d",
+  measurementId: "G-CVWVFJ9JHX"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+if (localStorage.getItem('facultyLoggedIn') !== 'true') {
+  alert("Please login first!");
+  window.location.href = 'login.html';
+}
+
+function updateHeader() {
+  const now = new Date();
+  document.getElementById("monthDisplay").textContent = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+  document.getElementById("dateDisplay").textContent = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById("timeDisplay").textContent = now.toLocaleTimeString();
+}
+setInterval(updateHeader, 1000);
+updateHeader();
+
+function loadTodayExpenses() {
+  const expenseList = document.getElementById("expenseList");
+  const todayTotalEl = document.getElementById("todayTotal");
+  expenseList.innerHTML = `<li class="text-gray-400 text-sm">Loading...</li>`;
+
+  const today = new Date().toISOString().split('T')[0];
+
+  db.collection("expenses")
+    .where("date", "==", today)
+    .get()
+    .then(snapshot => {
+      let totalToday = 0;
+      expenseList.innerHTML = "";
+
+      if (snapshot.empty) {
+        expenseList.innerHTML = `<li class="text-gray-400 text-sm">No expenses today.</li>`;
+        todayTotalEl.textContent = "₹0.00";
+        return;
+      }
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        totalToday += data.amount;
+
+        const li = document.createElement("li");
+        li.className = "bg-gray-50 p-4 rounded-md border border-gray-200";
+        li.innerHTML = `
+          <p class="text-lg font-semibold text-green-600">₹${data.amount.toFixed(2)}</p>
+          <p class="text-sm text-gray-700 mt-1">${data.description || "(No description)"}</p>
+        `;
+        expenseList.appendChild(li);
+      });
+
+      todayTotalEl.textContent = `₹${totalToday.toFixed(2)}`;
+    })
+    .catch(error => {
+      console.error("Error loading expenses:", error);
+      expenseList.innerHTML = `<li class="text-red-500">Failed to load expenses.</li>`;
+      todayTotalEl.textContent = "₹0.00";
+    });
+}
+
+loadTodayExpenses();
+
+const expenseForm = document.getElementById("expenseForm");
+const saveBtn = expenseForm.querySelector("button[type='submit']");
+
+expenseForm.addEventListener("submit", function (e) {
+  e.preventDefault();
+
+  const amount = parseFloat(document.getElementById("amount").value);
+  const description = document.getElementById("description").value.trim();
+  const now = new Date();
+  const todayDate = now.toISOString().split('T')[0];
+
+  if (!amount) return;
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Saving...";
+
+  db.collection("expenses").add({
+    amount,
+    description,
+    date: todayDate,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  })
+    .then(() => {
+      expenseForm.reset();
+      loadTodayExpenses();
+    })
+    .catch((error) => {
+      console.error("Error saving expense:", error);
+      alert("Failed to save. Please try again.");
+    })
+    .finally(() => {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Expense";
+    });
+});
+
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+const menuToggle = document.getElementById("menuToggle");
+
+menuToggle.addEventListener("click", () => {
+  sidebar.classList.toggle("-translate-x-full");
+  overlay.classList.toggle("hidden");
+});
+
+overlay.addEventListener("click", () => {
+  sidebar.classList.add("-translate-x-full");
+  overlay.classList.add("hidden");
+});
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  localStorage.removeItem('facultyLoggedIn');
+  window.location.href = 'login.html';
+});
+
+</script>
+
+</body>
+</html>
