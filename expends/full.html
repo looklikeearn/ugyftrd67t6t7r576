@@ -199,7 +199,7 @@
       const newDescription = prompt("Enter new description:", expense.desc);
 
       if (newAmount && newDescription) {
-        db.collection("expenses").doc(id).update({
+        db.collection("expends").doc(id).update({
           amount: parseFloat(newAmount),
           description: newDescription
         }).then(() => {
@@ -214,7 +214,7 @@
 
     function deleteExpense(id) {
       if (confirm("Are you sure you want to delete this expense?")) {
-        db.collection("expenses").doc(id).delete()
+        db.collection("expends").doc(id).delete()
           .then(() => {
             alert("Expense deleted!");
             window.location.reload();
@@ -241,7 +241,7 @@
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `expenses_${new Date().toISOString().slice(0,10)}.csv`);
+      link.setAttribute("download", `expends_${new Date().toISOString().slice(0,10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
