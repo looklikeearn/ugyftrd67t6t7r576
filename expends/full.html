@@ -70,7 +70,7 @@
   }
 
   function loadAllExpenses() {
-    db.collection("expend")  // 🔄 Changed from "expenses" to "expend"
+    db.collection("expends")  // 🔄 Changed from "expenses" to "expends"
       .orderBy("timestamp", "desc")
       .get()
       .then(snapshot => {
@@ -84,8 +84,9 @@
           const amount = data.amount || 0;
           const desc = data.description || "(No description)";
           const date = data.date || "Unknown";
+          const id = doc.id;  // Get the document ID
 
-          allExpenseData.push({ amount, desc, date });
+          allExpenseData.push({ amount, desc, date, id });
 
           const li = document.createElement("li");
           li.className = "border-b pb-2 border-gray-200";
@@ -95,6 +96,10 @@
               <span class="text-gray-500 text-sm">${date}</span>
             </div>
             <div>${desc}</div>
+            <div class="mt-2 flex justify-between">
+              <button onclick="editExpense('${id}')" class="bg-yellow-500 text-white px-4 py-2 rounded-lg shadow hover:bg-yellow-600 transition">✏️ Edit</button>
+              <button onclick="deleteExpense('${id}')" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition">❌ Delete</button>
+            </div>
           `;
           fullList.appendChild(li);
 
@@ -127,6 +132,39 @@
       li.textContent = `${year}: ₹${yearTotals[year].toFixed(2)}`;
       yearSummary.appendChild(li);
     });
+  }
+
+  function editExpense(id) {
+    const expense = allExpenseData.find(exp => exp.id === id);
+    const newAmount = prompt("Enter new amount:", expense.amount);
+    const newDescription = prompt("Enter new description:", expense.desc);
+
+    if (newAmount && newDescription) {
+      db.collection("expends").doc(id).update({
+        amount: parseFloat(newAmount),
+        description: newDescription
+      }).then(() => {
+        alert("Expense updated!");
+        window.location.reload();  // Reload to reflect changes
+      }).catch(error => {
+        console.error("Error updating expense:", error);
+        alert("Error updating expense.");
+      });
+    }
+  }
+
+  function deleteExpense(id) {
+    if (confirm("Are you sure you want to delete this expense?")) {
+      db.collection("expends").doc(id).delete()
+        .then(() => {
+          alert("Expense deleted!");
+          window.location.reload();  // Reload to reflect changes
+        })
+        .catch(error => {
+          console.error("Error deleting expense:", error);
+          alert("Error deleting expense.");
+        });
+    }
   }
 
   function downloadCSV() {
