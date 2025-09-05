@@ -158,7 +158,7 @@
     }
 
     function loadAllExpenses() {
-      db.collection("expenses")
+      db.collection("expends")
         .orderBy("timestamp", "desc")
         .get()
         .then(snapshot => {
