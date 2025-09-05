@@ -57,7 +57,7 @@
     </div>
 
     <div class="bg-white p-4 rounded-xl shadow">
-      <h3 class="text-lg font-semibold mb-3">Today's Expenses</h3>
+      <h3 class="text-lg font-semibold mb-3">Today's expends</h3>
       <ul id="expenseList" class="space-y-4 max-h-[400px] overflow-y-auto"></ul>
     </div>
   </div>
@@ -90,14 +90,14 @@
   setInterval(updateHeader, 1000);
   updateHeader();
 
-  function loadTodayExpenses() {
+  function loadTodayexpends() {
     const expenseList = document.getElementById("expenseList");
     const todayTotalEl = document.getElementById("todayTotal");
     expenseList.innerHTML = `<li class="text-gray-400 text-sm">Loading...</li>`;
 
     const today = new Date().toISOString().split('T')[0];
 
-    db.collection("expenses")
+    db.collection("expends")
       .where("date", "==", today)
       .get()
       .then(snapshot => {
@@ -105,7 +105,7 @@
         expenseList.innerHTML = "";
 
         if (snapshot.empty) {
-          expenseList.innerHTML = `<li class="text-gray-400 text-sm">No expenses today.</li>`;
+          expenseList.innerHTML = `<li class="text-gray-400 text-sm">No expends today.</li>`;
           todayTotalEl.textContent = "₹0.00";
           return;
         }
@@ -126,13 +126,13 @@
         todayTotalEl.textContent = `₹${totalToday.toFixed(2)}`;
       })
       .catch(error => {
-        console.error("Error loading expenses:", error);
-        expenseList.innerHTML = `<li class="text-red-500">Failed to load expenses.</li>`;
+        console.error("Error loading expends:", error);
+        expenseList.innerHTML = `<li class="text-red-500">Failed to load expends.</li>`;
         todayTotalEl.textContent = "₹0.00";
       });
   }
 
-  loadTodayExpenses();
+  loadTodayexpends();
 
   const expenseForm = document.getElementById("expenseForm");
   const saveBtn = expenseForm.querySelector("button[type='submit']");
@@ -150,7 +150,7 @@
     saveBtn.disabled = true;
     saveBtn.textContent = "Saving...";
 
-    db.collection("expenses").add({
+    db.collection("expends").add({
       amount,
       description,
       date: todayDate,
@@ -158,7 +158,7 @@
     })
       .then(() => {
         expenseForm.reset();
-        loadTodayExpenses();
+        loadTodayexpends();
       })
       .catch((error) => {
         console.error("Error saving expense:", error);
