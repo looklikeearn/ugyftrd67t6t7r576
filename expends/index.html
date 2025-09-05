@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>📊 Full Expense Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6 font-sans">
+
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold text-blue-700 mb-2">Full Expense Report</h1>
+  </header>
+
+  <div class="mb-4">
+    <button id="downloadBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition">
+      ⬇️ Download Excel file
+    </button>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    <div class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-3 text-blue-600">📅 Month-wise Totals</h2>
+      <ul id="monthSummary" class="text-sm space-y-2 text-gray-800"></ul>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-xl font-semibold mb-3 text-blue-600">📆 Year-wise Totals</h2>
+      <ul id="yearSummary" class="text-sm space-y-2 text-gray-800"></ul>
+    </div>
+  </div>
+
+  <div class="bg-white p-4 rounded-xl shadow mt-6">
+    <h2 class="text-xl font-semibold mb-3 text-blue-600">🧾 All Expenses</h2>
+    <ul id="fullList" class="text-sm space-y-3 max-h-[500px] overflow-y-auto text-gray-700"></ul>
+  </div>
+
+  <script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAPrVzvydC3GuoMe_ztdOi0CBhvg-Cckxw",
+    authDomain: "crobot-tech.firebaseapp.com",
+    projectId: "crobot-tech",
+    storageBucket: "crobot-tech.firebasestorage.app",
+    messagingSenderId: "913013774056",
+    appId: "1:913013774056:web:b00707f1d9c5f357389b5d",
+    measurementId: "G-CVWVFJ9JHX"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  if (localStorage.getItem('facultyLoggedIn') !== 'true') {
+    alert("Please login first!");
+    window.location.href = 'login.html'; 
+  }
+
+  const monthTotals = {};
+  const yearTotals = {};
+  const fullList = document.getElementById("fullList");
+  const monthSummary = document.getElementById("monthSummary");
+  const yearSummary = document.getElementById("yearSummary");
+
+  const allExpenseData = [];
+
+  function formatMonth(dateStr) {
+    const [year, month] = dateStr.split("-");
+    return `${year}-${month}`; 
+  }
+
+  function loadAllExpenses() {
+    db.collection("expend")  // 🔄 Changed from "expenses" to "expend"
+      .orderBy("timestamp", "desc")
+      .get()
+      .then(snapshot => {
+        if (snapshot.empty) {
+          fullList.innerHTML = "<li class='text-gray-400'>No expenses found.</li>";
+          return;
+        }
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const amount = data.amount || 0;
+          const desc = data.description || "(No description)";
+          const date = data.date || "Unknown";
+
+          allExpenseData.push({ amount, desc, date });
+
+          const li = document.createElement("li");
+          li.className = "border-b pb-2 border-gray-200";
+          li.innerHTML = `
+            <div class="flex justify-between">
+              <span class="text-green-600 font-semibold">₹${amount.toFixed(2)}</span>
+              <span class="text-gray-500 text-sm">${date}</span>
+            </div>
+            <div>${desc}</div>
+          `;
+          fullList.appendChild(li);
+
+          const monthKey = formatMonth(date);
+          const yearKey = date.split("-")[0];
+
+          monthTotals[monthKey] = (monthTotals[monthKey] || 0) + amount;
+          yearTotals[yearKey] = (yearTotals[yearKey] || 0) + amount;
+        });
+
+        renderSummaries();
+      })
+      .catch(err => {
+        console.error("Error loading data:", err);
+        fullList.innerHTML = `<li class="text-red-500">Error loading expenses.</li>`;
+      });
+  }
+
+  function renderSummaries() {
+    const sortedMonths = Object.keys(monthTotals).sort().reverse();
+    sortedMonths.forEach(month => {
+      const li = document.createElement("li");
+      li.textContent = `${month}: ₹${monthTotals[month].toFixed(2)}`;
+      monthSummary.appendChild(li);
+    });
+
+    const sortedYears = Object.keys(yearTotals).sort().reverse();
+    sortedYears.forEach(year => {
+      const li = document.createElement("li");
+      li.textContent = `${year}: ₹${yearTotals[year].toFixed(2)}`;
+      yearSummary.appendChild(li);
+    });
+  }
+
+  function downloadCSV() {
+    if (allExpenseData.length === 0) {
+      alert("No data to export!");
+      return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,Date,Amount,Description\n";
+
+    allExpenseData.forEach(item => {
+      csvContent += `${item.date},${item.amount},"${item.desc.replace(/"/g, '""')}"\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `expenses_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  document.getElementById("downloadBtn").addEventListener("click", downloadCSV);
+
+  loadAllExpenses();
+
+  </script>
+
+</body>
+</html>
