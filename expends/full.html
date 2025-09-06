@@ -7,6 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore-compat.js"></script>
+  <!-- ✅ Add SheetJS (for Excel) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen p-6 font-sans">
 
@@ -111,6 +113,9 @@
     }
 
     function renderSummaries() {
+      monthSummary.innerHTML = "";
+      yearSummary.innerHTML = "";
+
       const sortedMonths = Object.keys(monthTotals).sort().reverse();
       sortedMonths.forEach(month => {
         const li = document.createElement("li");
@@ -168,7 +173,7 @@
           }
 
           allExpenseData = [];
-          snapshot.forEach(doc => {
+          for (const doc of snapshot.docs) {
             const data = doc.data();
             const amount = data.amount || 0;
             const desc = data.description || "(No description)";
@@ -182,7 +187,7 @@
 
             monthTotals[monthKey] = (monthTotals[monthKey] || 0) + amount;
             yearTotals[yearKey] = (yearTotals[yearKey] || 0) + amount;
-          });
+          }
 
           renderSummaries();
           applyFilters();
@@ -226,44 +231,45 @@
       }
     }
 
-    // ✅ Updated downloadCSV function
-    function downloadCSV() {
+    // ✅ Updated: Export Excel (XLSX)
+    function downloadExcel() {
       if (allExpenseData.length === 0) {
         alert("No data to export!");
         return;
       }
 
-      let csvContent = "Date,Amount,Description\n";
-      allExpenseData.forEach(item => {
-        csvContent += `${item.date},${item.amount},"${item.desc.replace(/"/g, '""')}"\n`;
-      });
+      // Prepare sheet data
+      const worksheetData = [
+        ["Date", "Amount", "Description"],
+        ...allExpenseData.map(item => [item.date, item.amount, item.desc])
+      ];
 
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      // Create workbook + sheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+      XLSX.utils.book_append_sheet(wb, ws, "Expenses");
 
-      // Convert blob → Base64
-      const reader = new FileReader();
-      reader.onload = function() {
-        const base64Data = reader.result.split(",")[1]; // remove prefix
-        const fileName = `expends_${new Date().toISOString().slice(0, 10)}.csv`;
+      // Generate Excel file as Base64
+      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "base64" });
+      const fileName = `expends_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-        if (window.Android) {
-          Android.saveCSV(base64Data, fileName); // ✅ Send to Android app
-        } else {
-          // Fallback for browser
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.setAttribute("href", url);
-          link.setAttribute("download", fileName);
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-        }
-      };
-      reader.readAsDataURL(blob);
+      if (window.Android) {
+        Android.saveExcel(wbout, fileName); // ✅ send to Android app
+      } else {
+        // Fallback (browser download)
+        const blob = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+        const url = URL.createObjectURL(new Blob([blob], { type: "application/octet-stream" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
     }
 
-    document.getElementById("downloadBtn").addEventListener("click", downloadCSV);
+    document.getElementById("downloadBtn").addEventListener("click", downloadExcel);
     searchInput.addEventListener("input", applyFilters);
     sortSelect.addEventListener("change", applyFilters);
 
