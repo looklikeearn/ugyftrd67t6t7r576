@@ -226,36 +226,48 @@
       }
     }
 
+    // ✅ Updated downloadCSV function
     function downloadCSV() {
-    if (allExpenseData.length === 0) {
-      alert("No data to export!");
-      return;
+      if (allExpenseData.length === 0) {
+        alert("No data to export!");
+        return;
+      }
+
+      let csvContent = "Date,Amount,Description\n";
+      allExpenseData.forEach(item => {
+        csvContent += `${item.date},${item.amount},"${item.desc.replace(/"/g, '""')}"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+      // Convert blob → Base64
+      const reader = new FileReader();
+      reader.onload = function() {
+        const base64Data = reader.result.split(",")[1]; // remove prefix
+        const fileName = `expends_${new Date().toISOString().slice(0, 10)}.csv`;
+
+        if (window.Android) {
+          Android.saveCSV(base64Data, fileName); // ✅ Send to Android app
+        } else {
+          // Fallback for browser
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.setAttribute("href", url);
+          link.setAttribute("download", fileName);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+      };
+      reader.readAsDataURL(blob);
     }
 
-    let csvContent = "Date,Amount,Description\n";
+    document.getElementById("downloadBtn").addEventListener("click", downloadCSV);
+    searchInput.addEventListener("input", applyFilters);
+    sortSelect.addEventListener("change", applyFilters);
 
-    allExpenseData.forEach(item => {
-      csvContent += `${item.date},${item.amount},"${item.desc.replace(/"/g, '""')}"\n`;
-    });
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `expends_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url); // cleanup
-  }
-
-  document.getElementById("downloadBtn").addEventListener("click", downloadCSV);
-  searchInput.addEventListener("input", applyFilters);
-  sortSelect.addEventListener("change", applyFilters);
-
-  loadAllExpenses();
+    loadAllExpenses();
   </script>
 </body>
 </html>
