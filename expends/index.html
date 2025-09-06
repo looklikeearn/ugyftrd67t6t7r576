@@ -81,19 +81,7 @@
     window.location.href = 'login.html';
   }
 
-    window.onload = function() {
-      if (localStorage.getItem("isLoggedIn") !== "true") {
-        window.location.href = "login.html";
-      } else {
-        loadEventsFromClubs();  
-      }
-    };
-
-    function logout() {
-      localStorage.removeItem("isLoggedIn");
-      localStorage.removeItem("username");
-      window.location.href = "login.html";
-    }
+    
 
   function updateHeader() {
     const now = new Date();
