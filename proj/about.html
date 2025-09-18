@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Team Members - About</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #066aff, #d1e0e0);
+            color: white;
+            animation: fadeIn 2s ease-out;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+
+        .guide-info {
+            font-size: 1.2rem;
+            margin-top: 20px;
+            color: #fff;
+        }
+
+        .team-section {
+            display: flex;
+            justify-content: space-around;
+            padding: 60px 20px;
+            flex-wrap: wrap;
+            gap: 30px;
+            animation: fadeInUp 1.5s ease-out;
+        }
+
+        .team-card {
+            background-color: #fff;
+            border-radius: 20px;
+            width: 300px;
+            padding: 25px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transform: translateY(50px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            animation: slideUp 1s forwards;
+            animation-delay: 0.2s;
+        }
+
+        .team-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            0% {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #1d3c6c;
+            margin-bottom: 10px;
+            transition: color 0.3s ease;
+        }
+
+        p {
+            font-size: 1rem;
+            color: #555;
+            margin-bottom: 15px;
+            transition: color 0.3s ease;
+        }
+
+        .team-card:hover h2, .team-card:hover p {
+            color: #1a73e8;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            background: #1d3c6c;
+            color: white;
+            margin-top: 50px;
+            animation: fadeIn 2s ease-out;
+        }
+
+        footer p {
+            font-size: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .team-section {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>IoT Based</h1>Home Automation System</h1>
+        <div class="guide-info">
+            <p>Guide: Dr. Saravanan S</p>
+            <p>Assistant Professor, ECE</p>
+        </div>
+    </header>
+    <section class="team-section">
+        <div class="team-card">
+            <h2>Prasad SN</h2>
+            <p><strong>Reg. No:</strong> 226173035</p>
+            <p><strong>Experience:</strong> 6 years in App and Web Development</p>
+            <p><strong>Extra Performance:</strong> Expert in App & Web Development</p>
+        </div>
+        <div class="team-card">
+            <h2>Prasanna</h2>
+            <p><strong>Reg. No:</strong> 226173036</p>
+            <p><strong>Extra Performance:</strong> Critical Thinking & Best Communication Skills</p>
+            <p><strong>Interests:</strong> Programming & Core Subjects</p>
+        </div>
+        <div class="team-card">
+            <h2>Rajesh S</h2>
+            <p><strong>Reg. No:</strong> 226173038</p>
+            <p><strong>Extra Performance:</strong> NCC & Top Performer in Core Subjects</p>
+        </div>
+    </section>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const teamCards = document.querySelectorAll('.team-card');
+            teamCards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.transform = 'translateY(0)';
+                    card.style.opacity = '1';
+                }, index * 200);
+            });
+        });
+    </script>
+</body>
+</html>
