@@ -161,7 +161,9 @@
   </div>
 
   <script>
-    const ESP32_IP = "http://192.168.79.138/"; 
+    // 🔧 Change this to match your ESP32's current IP address
+    const ESP32_IP = "http://192.168.79.138";
+
     const bulbBtn = document.getElementById("bulbBtn");
     const fanBtn = document.getElementById("fanBtn");
     const bulbIcon = document.getElementById("bulbIcon");
@@ -172,6 +174,7 @@
     function openMenu() {
       document.getElementById("sidebar").style.width = "250px";
     }
+
     function closeMenu() {
       document.getElementById("sidebar").style.width = "0";
     }
@@ -206,19 +209,19 @@
       }
     });
 
-    // Update distance every 2 seconds
+    // 🔁 Distance update every 2 sec
     setInterval(() => {
       fetch(`${ESP32_IP}/distance`)
         .then(res => res.json())
         .then(data => {
           distanceDisplay.textContent = `Distance: ${data.cm} cm`;
         })
-        .catch(err => {
+        .catch(() => {
           distanceDisplay.textContent = "Distance: -- cm";
         });
     }, 2000);
 
-    // Connection check
+    // 🌐 Connection check
     function checkConnection() {
       fetch(`${ESP32_IP}/ping`)
         .then(res => {
@@ -226,7 +229,7 @@
             statusIndicator.textContent = "Connected";
             statusIndicator.style.color = "green";
           } else {
-            throw new Error("Offline");
+            throw new Error("Not Connected");
           }
         })
         .catch(() => {
@@ -235,9 +238,9 @@
         });
     }
 
-    // Check every 3 seconds
+    // Check connection every 3 seconds
     setInterval(checkConnection, 3000);
-    checkConnection(); // Initial check
+    checkConnection();
   </script>
 </body>
 </html>
