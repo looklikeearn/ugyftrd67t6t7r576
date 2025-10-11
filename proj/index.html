@@ -149,6 +149,16 @@
       <button id="fanBtn" class="off">Turn ON</button>
     </div>
 
+    <div class="card">
+      <h2>Distance</h2>
+      <div id="distance">Distance: -- cm</div>
+    </div>
+
+    <div class="card">
+      <h2>Device Status</h2>
+      <div id="statusIndicator" style="font-size: 18px; color: gray;">Checking...</div>
+    </div>
+  </div>
 
   <script>
     const ESP32_IP = "http://192.168.79.206"; 
@@ -157,6 +167,7 @@
     const bulbIcon = document.getElementById("bulbIcon");
     const fanIcon = document.getElementById("fanIcon");
     const distanceDisplay = document.getElementById("distance");
+    const statusIndicator = document.getElementById("statusIndicator");
 
     function openMenu() {
       document.getElementById("sidebar").style.width = "250px";
@@ -195,6 +206,7 @@
       }
     });
 
+    // Update distance every 2 seconds
     setInterval(() => {
       fetch(`${ESP32_IP}/distance`)
         .then(res => res.json())
@@ -202,9 +214,30 @@
           distanceDisplay.textContent = `Distance: ${data.cm} cm`;
         })
         .catch(err => {
-          console.log("Error fetching distance:", err);
+          distanceDisplay.textContent = "Distance: -- cm";
         });
     }, 2000);
+
+    // Connection check
+    function checkConnection() {
+      fetch(`${ESP32_IP}/ping`)
+        .then(res => {
+          if (res.ok) {
+            statusIndicator.textContent = "Connected";
+            statusIndicator.style.color = "green";
+          } else {
+            throw new Error("Offline");
+          }
+        })
+        .catch(() => {
+          statusIndicator.textContent = "Not Connected";
+          statusIndicator.style.color = "red";
+        });
+    }
+
+    // Check every 3 seconds
+    setInterval(checkConnection, 3000);
+    checkConnection(); // Initial check
   </script>
 </body>
 </html>
