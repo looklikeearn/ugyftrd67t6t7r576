@@ -70,7 +70,7 @@
 
   <script>
     // IMPORTANT: Replace with your ESP32's local IP
-    const ESP32_IP = "http://192.168.139.138";
+    const ESP32_IP = "http://192.168.191.138";
 
     const bulbBtn = document.getElementById("bulbBtn");
     const fanBtn = document.getElementById("fanBtn");
@@ -91,7 +91,7 @@
         .catch(console.error);
     };
 
-    function updateButton(button, state) {
+  function updateButton(button, state) {
       if (state === "on") {
         button.textContent = "Turn OFF";
         button.className = "on";
