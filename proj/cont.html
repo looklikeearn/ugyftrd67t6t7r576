@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ESP32 IoT Control Panel</title>
+  <title>ESP32 IoT Control</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -69,8 +69,8 @@
   </div>
 
   <script>
-    // === CHANGE THIS TO YOUR ESP32 IP ===
-    const ESP32_IP = "192.168.139.138";
+    // IMPORTANT: Replace with your ESP32's local IP
+    const ESP32_IP = "http://192.168.139.138";
 
     const bulbBtn = document.getElementById("bulbBtn");
     const fanBtn = document.getElementById("fanBtn");
@@ -128,7 +128,6 @@
         });
     }
 
-    // Initial and periodic updates
     setInterval(updateDistance, 2000);
     setInterval(checkConnection, 3000);
     updateDistance();
