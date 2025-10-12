@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ESP32 IoT Control Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      text-align: center;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 10px;
+      width: 300px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .on {
+      background: #4CAF50;
+      color: white;
+    }
+    .off {
+      background: #f44336;
+      color: white;
+    }
+    #distance {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    #status {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>ESP32 IoT Control</h1>
+
+  <div class="card">
+    <h2>Bulb</h2>
+    <button id="bulbBtn" class="off">Turn ON</button>
+  </div>
+
+  <div class="card">
+    <h2>Fan</h2>
+    <button id="fanBtn" class="off">Turn ON</button>
+  </div>
+
+  <div class="card">
+    <h2>Distance</h2>
+    <div id="distance">-- cm</div>
+  </div>
+
+  <div class="card">
+    <h2>Status</h2>
+    <div id="status">Checking...</div>
+  </div>
+
+  <script>
+    // === CHANGE THIS TO YOUR ESP32 IP ===
+    const ESP32_IP = "http://192.168.1.100";
+
+    const bulbBtn = document.getElementById("bulbBtn");
+    const fanBtn = document.getElementById("fanBtn");
+    const distanceDisplay = document.getElementById("distance");
+    const statusDisplay = document.getElementById("status");
+
+    bulbBtn.onclick = () => {
+      const state = bulbBtn.classList.contains("on") ? "off" : "on";
+      fetch(`${ESP32_IP}/bulb?state=${state}`)
+        .then(() => updateButton(bulbBtn, state))
+        .catch(console.error);
+    };
+
+    fanBtn.onclick = () => {
+      const state = fanBtn.classList.contains("on") ? "off" : "on";
+      fetch(`${ESP32_IP}/fan?state=${state}`)
+        .then(() => updateButton(fanBtn, state))
+        .catch(console.error);
+    };
+
+    function updateButton(button, state) {
+      if (state === "on") {
+        button.textContent = "Turn OFF";
+        button.className = "on";
+      } else {
+        button.textContent = "Turn ON";
+        button.className = "off";
+      }
+    }
+
+    function updateDistance() {
+      fetch(`${ESP32_IP}/distance`)
+        .then(res => res.json())
+        .then(data => {
+          distanceDisplay.textContent = `${data.cm} cm`;
+        })
+        .catch(() => {
+          distanceDisplay.textContent = "-- cm";
+        });
+    }
+
+    function checkConnection() {
+      fetch(`${ESP32_IP}/ping`)
+        .then(res => {
+          if (res.ok) {
+            statusDisplay.textContent = "Connected";
+            statusDisplay.style.color = "green";
+          } else {
+            throw new Error("Disconnected");
+          }
+        })
+        .catch(() => {
+          statusDisplay.textContent = "Not Connected";
+          statusDisplay.style.color = "red";
+        });
+    }
+
+    // Initial and periodic updates
+    setInterval(updateDistance, 2000);
+    setInterval(checkConnection, 3000);
+    updateDistance();
+    checkConnection();
+  </script>
+</body>
+</html>
