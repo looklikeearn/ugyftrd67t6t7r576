@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TV Game</title>
+<style>
+body {
+  margin: 0;
+  background: #222;
+  overflow: hidden;
+}
+canvas {
+  display: block;
+  margin: 0 auto;
+  background: #333;
+}
+.info {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgb(255, 231, 13);
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  z-index: 2;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div class="info" id="info">Swipe the remote!</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+const W = canvas.width;
+const H = canvas.height;
+const info = document.getElementById('info');
+
+
+const tvWidth = W * 0.4;
+const tvHeight = H * 0.2;
+const tvSpacing = W * 0.1;
+
+const tvs = [
+  { x: W*0.05, y: H*0.15, w: tvWidth, h: tvHeight, on: false, img: new Image() },
+  { x: W*0.05 + tvWidth + tvSpacing, y: H*0.15, w: tvWidth, h: tvHeight, on: false, img: new Image() }
+];
+
+
+// Add separate images inside TVs
+tvs[0].img.src = "vijay.jpg";  
+tvs[1].img.src = "ajith.jpeg"; 
+
+// Randomly choose correct TV
+const correctIndex = Math.random() < 0.5 ? 0 : 1;
+
+// Remote properties
+const remote = { x: W/2, y: H*0.8, w: W*0.15, h: H*0.03, angle: 90, disabled: false };
+
+// Draw TVs
+function drawTV(tv) {
+  ctx.fillStyle = '#111';
+  ctx.fillRect(tv.x, tv.y, tv.w, tv.h);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(tv.x, tv.y, tv.w, tv.h);
+
+  if (tv.on && tv.img.complete) {
+    ctx.drawImage(tv.img, tv.x+10, tv.y+10, tv.w-20, tv.h-20);
+  }
+}
+
+// Draw remote
+function drawRemote() {
+  ctx.save();
+  ctx.translate(remote.x, remote.y);
+  ctx.rotate(remote.angle * Math.PI / 180);
+  ctx.fillStyle = '#555';
+  ctx.fillRect(-remote.w/2, -remote.h/2, remote.w, remote.h);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(-remote.w/2, -remote.h/2, remote.w, remote.h);
+  ctx.restore();
+}
+
+// Handle TV selection
+function selectTV(index) {
+  if (remote.disabled) return;
+  remote.disabled = true;
+
+  if (index === 0) remote.angle = 45;
+  else remote.angle = 135;
+
+  tvs[index].on = true;
+  tvs[1-index].on = false;
+
+  if (index === correctIndex) {
+    info.textContent = "🏆🏆🏆👑👑👑🏆🏆🏆";
+    setTimeout(() => {
+      window.location.href = "ball.html";
+    }, 4000); // wait 4 seconds
+  } else {
+    info.textContent = "❌❌❌❌❌❌❌";
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000); // restart after 2 seconds
+  }
+}
+
+// Touch events for mobile
+let touchStartX = 0;
+canvas.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
+canvas.addEventListener('touchend', e => {
+  const touchEndX = e.changedTouches[0].clientX;
+  if (touchEndX < touchStartX) selectTV(0);
+  else selectTV(1);
+});
+
+// Mouse click (for testing)
+canvas.addEventListener('click', e => {
+  const clickX = e.clientX - canvas.getBoundingClientRect().left;
+  if (clickX < W/2) selectTV(0);
+  else selectTV(1);
+});
+
+function gameLoop() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Draw wall
+  ctx.fillStyle = '#333';
+  ctx.fillRect(0,0,W,H);
+
+  // Draw TVs
+  tvs.forEach(drawTV);
+
+  // Draw remote
+  drawRemote();
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>

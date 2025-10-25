@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Basketball Game</title>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #6100fd;
+  overflow-x: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+canvas {
+  display: block;
+  margin: 0 auto;
+  background: #5f08ff;
+  box-shadow: 0 0 24px rgba(71, 4, 255, 0.667);
+}
+.info {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgb(255, 231, 13);
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  z-index: 2;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.9),
+               0 0 20px rgba(255, 255, 255, 0.8),
+               0 0 30px rgba(255, 255, 255, 0.6);
+}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+<div class="info" id="info">Swipe to Shoot!</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+const info = document.getElementById('info');
+const leftSideImg = new Image();
+leftSideImg.src = "audience_left.jpg"; // 👈 your custom left side image
+
+const rightSideImg = new Image();
+rightSideImg.src = "audience_right.jpg"; 
+
+const ballImg = new Image();
+ballImg.src = "basket.png";
+const hoopImg = new Image();
+hoopImg.src = "hoop.png";
+
+const ball = { 
+  w: 160, 
+  h: 160, 
+  x: W/2 - 80, 
+  y: H - 140, 
+  baseY: H - 140, 
+  speedY: 6, 
+  moving: false, 
+  target: null, 
+  bounceDir: 1, 
+  bounceRange: 20 
+};
+
+const hoops = [
+  { x: 30, y: 80, w: 150, h: 150 },
+  { x: 240, y: 80, w: 150, h: 150 }
+];
+
+let gameOver = false;
+let glowPhase = 0;
+
+function drawBackground() {
+  ctx.fillStyle = '#444';
+  ctx.fillRect(0,0,W,H);
+
+  // Draw left side image
+  if (leftSideImg.complete) ctx.drawImage(leftSideImg, 0, 0, 100, H);
+  
+  // Draw right side image
+  if (rightSideImg.complete) ctx.drawImage(rightSideImg, W - 100, 0, 100, H);
+
+  glowPhase += 0.05;
+  const glow = Math.sin(glowPhase) * 0.5 + 0.5;
+
+  hoops.forEach(h => {
+    ctx.shadowBlur = 20 * glow;
+    ctx.shadowColor = `rgba(255,255,255,${0.3 + glow*0.3})`;
+    if (hoopImg.complete) ctx.drawImage(hoopImg, h.x, h.y, h.w, h.h);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px Arial';
+    ctx.fillText('Answer', h.x, h.y - 6);
+  });
+}
+
+function drawBall() {
+  if (ballImg.complete) ctx.drawImage(ballImg, ball.x, ball.y, ball.w, ball.h);
+}
+
+function bounceBall() {
+  ball.y += ball.bounceDir * 0.7;
+  if (ball.y > ball.baseY + ball.bounceRange || ball.y < ball.baseY - ball.bounceRange) {
+    ball.bounceDir *= -1;
+  }
+}
+
+function moveBall() {
+  if (!ball.target) return;
+  const targetX = ball.target.x + ball.target.w/2 - ball.w/2;
+  const targetY = ball.target.y + ball.target.h/2 - ball.h/2;
+
+  ball.x += (targetX - ball.x) * 0.1;
+  ball.y += (targetY - ball.y) * 0.05;
+
+  if (Math.abs(ball.x - targetX) < 2 && Math.abs(ball.y - targetY) < 2) {
+    ball.moving = false;
+    decideResult();
+  }
+}
+
+function decideResult() {
+  gameOver = true;
+  const isWin = Math.random() < 0.5;
+  if (isWin) {
+    info.textContent = "🏆🏆🏆🏆🏆🏆🏆🏆";
+    setTimeout(() => window.location.href = "crack.html", 1500);
+  } else {
+    info.textContent = "❌❌❌❌❌❌❌ ";
+    setTimeout(() => window.location.reload(), 2000);
+  }
+}
+
+function handleClickOrSwipe(x) {
+  if (ball.moving || gameOver) return;
+  if (x < W/2) ball.target = hoops[0];
+  else ball.target = hoops[1];
+  ball.moving = true;
+  info.textContent = "🏀 Shooting!";
+}
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  handleClickOrSwipe(e.clientX - rect.left);
+});
+
+let touchStartX = 0;
+canvas.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+});
+canvas.addEventListener('touchend', e => {
+  const touchEndX = e.changedTouches[0].clientX;
+  if (touchEndX < touchStartX) handleClickOrSwipe(0);
+  else handleClickOrSwipe(W);
+});
+
+function gameLoop() {
+  ctx.clearRect(0,0,W,H);
+  drawBackground();
+  if (!ball.moving) bounceBall();
+  if (ball.moving) moveBall();
+  drawBall();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>

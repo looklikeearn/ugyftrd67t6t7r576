@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pejorative Archery Game 🎯</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      background: #fff0f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h1 {
+      color: #e91e63;
+      margin-bottom: 10px;
+    }
+
+    .game-container {
+      position: relative;
+      width: 800px;
+      height: 400px;
+      background: #fdfdfd;
+      border: 5px dashed #e91e63;
+      border-radius: 15px;
+      overflow: hidden;
+    }
+
+    .target {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      position: absolute;
+      top: 100px;
+      background: conic-gradient(red, yellow, lightblue, yellow, red);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 1px 1px 3px black;
+    }
+
+    #target1 {
+      left: 600px;
+    }
+
+    #target2 {
+      left: 600px;
+      top: 250px;
+    }
+
+    .bow {
+      position: absolute;
+      left: 30px;
+      top: 150px;
+      width: 80px;
+      height: 80px;
+      background: url('https://cdn-icons-png.flaticon.com/512/685/685655.png') no-repeat center;
+      background-size: contain;
+      transform: rotate(-20deg);
+    }
+
+    .arrow {
+      position: absolute;
+      left: 90px;
+      top: 180px;
+      width: 80px;
+      height: 10px;
+      background: black;
+      border-radius: 5px;
+    }
+
+    .label {
+      position: absolute;
+      left: 100px;
+      top: 160px;
+      font-size: 14px;
+      color: green;
+      font-weight: bold;
+    }
+
+    .shoot-button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 16px;
+      background: #ff4081;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .shoot-button:hover {
+      background: #f50057;
+    }
+
+    .result {
+      margin-top: 15px;
+      font-size: 20px;
+      color: #333;
+      min-height: 24px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎯 Pejorative Arrow Game</h1>
+  <div class="game-container">
+    <div class="target" id="target1">Soothing</div>
+    <div class="target" id="target2">Insulting</div>
+    <div class="bow"></div>
+    <div class="arrow" id="arrow"></div>
+    <div class="label">Pejorative</div>
+  </div>
+
+  <button class="shoot-button" onclick="shootArrow()">Shoot Pejorative Arrow</button>
+  <div class="result" id="result"></div>
+
+  <script>
+    function shootArrow() {
+      const arrow = document.getElementById("arrow");
+      const resultText = document.getElementById("result");
+
+      // Reset arrow position
+      gsap.set(arrow, { x: 0, y: 0, rotation: 0 });
+
+      // Randomly choose which target gets hit
+      const target = Math.random() > 0.5 ? "soothing" : "insulting";
+      let xTarget = 520;
+      let yTarget = target === "soothing" ? -80 : 80;
+
+      // Animate the arrow
+      gsap.to(arrow, {
+        duration: 1.2,
+        x: xTarget,
+        y: yTarget,
+        rotation: 720,
+        ease: "power3.out",
+        onComplete: () => {
+          if (target === "soothing") {
+            resultText.innerText = "🎉 You shot a PEJORATIVE and it turned out... soothing?! What kind of magic is this?";
+          } else {
+            resultText.innerText = "💥 Boom! That pejorative was so sharp, someone just rage quit life.";
+          }
+        }
+      });
+
+      resultText.innerText = "🕵️‍♂️ Aiming the pejorative... hold your breath...";
+    }
+  </script>
+
+</body>
+</html>

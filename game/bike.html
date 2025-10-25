@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Car Game</title>
+
+  <style>
+  body {
+    margin: 0;
+    background: #111;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    margin: 0 auto;
+    background: #333;
+    box-shadow: 0 0 24px #000a;
+  }
+
+  .info {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgb(255, 231, 13);
+    font-family: Arial, sans-serif;
+    font-size: 20px;
+    z-index: 2;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.9),
+                 0 0 20px rgba(255, 255, 255, 0.8),
+                 0 0 30px rgba(255, 255, 255, 0.6);
+  }
+
+  @media (max-width: 600px) {
+    canvas {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+    }
+  }
+
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+<div class="info" id="info">🏁-Find-🏁</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+const info = document.getElementById('info');
+const leftSideImg = new Image();
+leftSideImg.src = "beach_left.jpg"; // replace with your left side image path
+
+const rightSideImg = new Image();
+rightSideImg.src = "beach_right.jpg"; // replace with your right side image path
+
+
+// Road setup
+const road = {
+  x: 80,
+  y: 0,
+  width: 240,
+  height: H,
+  color: '#565',
+  laneCount: 3
+};
+const laneWidth = road.width / road.laneCount;
+
+// Player car
+const car = {
+  w: 104,
+  h: 170,
+  y: H - 120,
+  lane: 1,
+  x: 0,
+  speedY: 4
+};
+car.x = road.x + car.lane * laneWidth + laneWidth/2 - car.w/2;
+
+// Finish lines
+const finishLines = [
+  { lane: 0, y: 80, w: laneWidth - 20, h: 12 },
+  { lane: 2, y: 80, w: laneWidth - 20, h: 12 }
+];
+
+let movingToFinish = false;
+let targetFinish = null;
+let gameOver = false;
+let glowPhase = 0; // for pulsing glow
+
+function drawRoad() {
+  // Left side
+  if (leftSideImg.complete) {
+    ctx.drawImage(leftSideImg, 0, 0, road.x, H);
+  } else {
+    leftSideImg.onload = () => ctx.drawImage(leftSideImg, 0, 0, road.x, H);
+  }
+
+  // Right side
+  const rightX = road.x + road.width;
+  const rightWidth = W - rightX;
+  if (rightSideImg.complete) {
+    ctx.drawImage(rightSideImg, rightX, 0, rightWidth, H);
+  } else {
+    rightSideImg.onload = () => ctx.drawImage(rightSideImg, rightX, 0, rightWidth, H);
+  }
+
+  // Main road
+  ctx.fillStyle = road.color;
+  ctx.fillRect(road.x, road.y, road.width, road.height);
+
+  // For mobile: draw a full-width road at the bottom
+  if (window.innerWidth <= 600) {
+    ctx.fillStyle = road.color;
+    ctx.fillRect(0, H - 60, W, 60); // 60px tall full-width road at bottom
+  }
+
+  // Lane lines
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 4;
+  ctx.setLineDash([28, 28]);
+  for (let i = 1; i < road.laneCount; i++) {
+    const lx = road.x + i * laneWidth;
+    ctx.beginPath();
+    ctx.moveTo(lx, 0);
+    ctx.lineTo(lx, H);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+
+
+// Draw glowing finish lines
+let lightTimer = 0; // timer for traffic light sequence
+const lightDuration = 0.2; // 0.2 seconds per color
+let glowIndex = 0; // which light is glowing: 0=red,1=yellow,2=green
+
+function drawFinishLines(deltaTime) {
+  glowPhase += 0.05;
+
+  // Update traffic light sequence
+  lightTimer += deltaTime / 1000; // deltaTime in milliseconds
+  if (lightTimer >= lightDuration) {
+    lightTimer = 0;
+    glowIndex = (glowIndex + 1) % 3;
+  }
+
+  for (let f of finishLines) {
+    const fx = road.x + f.lane * laneWidth + 10;
+
+    // Draw colored finish line (single color)
+    ctx.fillStyle = '#ff4444'; // red finish line (change as needed)
+    ctx.fillRect(fx, f.y, f.w, f.h);
+
+    // Finish text
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px Arial';
+    ctx.fillText('FINISH', fx + f.w / 4, f.y - 4);
+
+    // Traffic light box above finish line
+    const fy = f.y - 35;
+    const boxWidth = f.w;
+    const boxHeight = 20;
+    ctx.fillStyle = '#222';
+    ctx.fillRect(fx, fy, boxWidth, boxHeight);
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(fx, fy, boxWidth, boxHeight);
+
+    // Draw three traffic lights
+    const spacing = boxWidth / 4;
+    const centers = [fx + spacing, fx + boxWidth / 2, fx + boxWidth - spacing];
+    const colorsLight = ['red', 'yellow', 'green'];
+
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(centers[i], fy + boxHeight / 2, 6, 0, Math.PI * 2);
+
+      // All lights are visible, but only one glows
+      ctx.fillStyle = colorsLight[i];
+      if (i === glowIndex) {
+        ctx.shadowColor = colorsLight[i];
+        ctx.shadowBlur = 15;
+      } else {
+        ctx.shadowBlur = 0;
+      }
+      ctx.fill();
+    }
+
+    ctx.shadowBlur = 0; // reset shadow
+  }
+}
+
+
+// Load car image
+const carImg = new Image();
+carImg.src = "bike.png"; // 👈 replace with your image path
+
+function drawCar(x, y) {
+  if (carImg.complete) {
+    ctx.drawImage(carImg, x, y, car.w, car.h);
+  } else {
+    carImg.onload = () => ctx.drawImage(carImg, x, y, car.w, car.h);
+  }
+}
+
+
+function moveToFinish() {
+  if (!targetFinish) return;
+  const targetX = road.x + targetFinish.lane * laneWidth + laneWidth / 2 - car.w / 2;
+
+  car.x += (targetX - car.x) * 0.1;
+  car.y -= car.speedY;
+
+  if (car.y + car.h < targetFinish.y + targetFinish.h) {
+    movingToFinish = false;
+    decideResult();
+  }
+}
+
+function decideResult() {
+  gameOver = true;
+  const isWin = Math.random() < 0.5;
+  if (isWin) {
+    info.textContent = "🏆🏆🏆👑👑👑🏆🏆🏆";
+    setTimeout(() => window.location.href = "tv.html", 1500);
+  } else {
+    info.textContent = "❌❌❌❌❌❌";
+    setTimeout(() => window.location.reload(), 2000);
+  }
+}
+
+// Click/touch detection for finish lines
+canvas.addEventListener('click', (e) => {
+  if (movingToFinish || gameOver) return;
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  for (let f of finishLines) {
+    const fx = road.x + f.lane * laneWidth + 10;
+    if (clickX > fx && clickX < fx + f.w && clickY > f.y && clickY < f.y + f.h) {
+      movingToFinish = true;
+      targetFinish = f;
+      info.textContent = "Never Give Up";
+    }
+  }
+});
+
+function gameLoop() {
+  ctx.clearRect(0, 0, W, H);
+  drawRoad();
+  drawFinishLines();
+
+  if (movingToFinish) moveToFinish();
+
+  drawCar(car.x, car.y);
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>

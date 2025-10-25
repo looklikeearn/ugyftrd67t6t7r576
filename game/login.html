@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In / Sign Up</title>
+
+  <!-- External CSS & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+      background: linear-gradient(45deg, #36d1dc, #5b86e5); /* Default fallback */
+      position: relative;
+      animation: gradientShift 15s ease infinite;
+    }
+
+    /* 15+ Lightning color animated gradient */
+    @keyframes gradientShift {
+      0% { background: linear-gradient(45deg, #36d1dc, #5b86e5); }
+      7% { background: linear-gradient(45deg, #ff7e5f, #feb47b); }
+      14% { background: linear-gradient(45deg, #ff6a00, #d40000); }
+      21% { background: linear-gradient(45deg, #72ace2, #0357e7); }
+      28% { background: linear-gradient(45deg, #00c6ff, #0072ff); }
+      35% { background: linear-gradient(45deg, #fc00ff, #00dbde); }
+      42% { background: linear-gradient(45deg, #ff0099, #493240); }
+      49% { background: linear-gradient(45deg, #00d2ff, #3a7bd5); }
+      56% { background: linear-gradient(45deg, #ff6b6b, #ffcc6b); }
+      63% { background: linear-gradient(45deg, #00bcd4, #008080); }
+      70% { background: linear-gradient(45deg, #ffeb3b, #ff9800); }
+      77% { background: linear-gradient(45deg, #ff1744, #d50000); }
+      84% { background: linear-gradient(45deg, #388e3c, #7cb342); }
+      91% { background: linear-gradient(45deg, #009688, #4caf50); }
+      100% { background: linear-gradient(45deg, #36d1dc, #5b86e5); }
+    }
+
+    /* Container Style */
+    .container {
+      width: 380px;
+      padding: 40px 35px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      transition: transform 0.3s ease;
+    }
+
+    .container h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 26px;
+      font-weight: 600;
+    }
+
+    /* Input and button styling */
+    input[type="email"],
+    input[type="password"],
+    button {
+      width: 100%;
+      padding: 14px;
+      margin: 12px 0;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+      background-color: #ffffff; /* Make input fields white to stand out */
+      color: #333;
+      transition: 0.3s;
+    }
+
+    input[type="email"]:focus,
+    input[type="password"]:focus {
+      border-color: #5b86e5;
+      outline: none;
+      background-color: #f3f9ff; /* Light blue background on focus */
+    }
+
+    button {
+      background-color: #5b86e5;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #36d1dc;
+    }
+
+    /* Links (Forgot Password, Switch between Sign In and Sign Up) */
+    .switch-link,
+    .forgot-link {
+      display: block;
+      margin: 15px 0;
+      font-size: 14px;
+      color: #007bff;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .switch-link:hover,
+    .forgot-link:hover {
+      color: #0056b3;
+    }
+
+    /* Error and Success messages */
+    .error-message,
+    .success-message {
+      font-size: 14px;
+      margin-top: 10px;
+      text-align: left;
+    }
+
+    .error-message {
+      color: red;
+    }
+
+    .success-message {
+      color: green;
+    }
+
+    /* Responsive Design for iPhone and mobile screens */
+    @media (max-width: 600px) {
+      .container {
+        width: 90%;
+        padding: 20px;
+      }
+
+      .container h2 {
+        font-size: 22px;
+      }
+
+      input[type="email"],
+      input[type="password"],
+      button {
+        padding: 12px;
+        font-size: 15px;
+      }
+
+      .switch-link,
+      .forgot-link {
+        font-size: 12px;
+      }
+    }
+
+    /* For larger screens like Desktop */
+    @media (min-width: 601px) {
+      .container {
+        width: 380px;
+      }
+
+      .container h2 {
+        font-size: 26px;
+      }
+
+      input[type="email"],
+      input[type="password"],
+      button {
+        padding: 14px;
+        font-size: 16px;
+      }
+
+      .switch-link,
+      .forgot-link {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2 id="form-title">Sign In</h2>
+
+    <div class="input-container">
+      <input type="email" id="email" placeholder="Enter your email" required>
+      <input type="password" id="password" placeholder="Enter your password" required>
+    </div>
+
+    <button id="action-btn">Sign In</button>
+
+    <span class="error-message" id="error-message"></span>
+    <span class="success-message" id="success-message"></span>
+
+    <a class="forgot-link" id="forgot-password-link">Forgot Password?</a>
+    <a class="switch-link" id="switch-link">Don't have an account? Sign Up</a>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
+  authDomain: "test-d6f13.firebaseapp.com",
+  projectId: "test-d6f13",
+  storageBucket: "test-d6f13.appspot.com",
+  messagingSenderId: "1043978393185",
+  appId: "1:1043978393185:web:a40e50c013d7869b8cfc20",
+  measurementId: "G-VLTFR2GXGS"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    let isSignUp = false;
+
+    const formTitle = document.getElementById('form-title');
+    const actionBtn = document.getElementById('action-btn');
+    const switchLink = document.getElementById('switch-link');
+    const forgotPasswordLink = document.getElementById('forgot-password-link');
+    const errorMessage = document.getElementById('error-message');
+    const successMessage = document.getElementById('success-message');
+
+    // Custom error messages
+    const errorMessages = {
+      "auth/email-already-in-use": "This email is already in use. Please sign in.",
+      "auth/user-not-found": "No account found with this email. Please sign up first.",
+      "auth/wrong-password": "Incorrect password. Please try again.",
+      "auth/invalid-email": "Invalid email address. Please check and try again.",
+      "auth/network-request-failed": "Network error. Please check your internet connection.",
+    };
+
+    // Handle Sign-In and Sign-Up
+    actionBtn.addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      errorMessage.textContent = '';
+      successMessage.textContent = '';
+
+      if (!email || !password) {
+        errorMessage.textContent = 'Please fill in all fields.';
+        return;
+      }
+
+      try {
+        if (isSignUp) {
+          // Sign up new user
+          await createUserWithEmailAndPassword(auth, email, password);
+          successMessage.textContent = 'Account created successfully! Please sign in.';
+          toggleSignInSignUp();
+        } else {
+          // Sign in existing user
+          await signInWithEmailAndPassword(auth, email, password);
+          successMessage.textContent = 'Sign-in successful! Redirecting...';
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 1500);
+        }
+      } catch (error) {
+        const customMessage = errorMessages[error.code] || "Incorrect Password. Please try again.";
+        errorMessage.textContent = customMessage;
+      }
+    });
+
+    // Toggle Sign-In and Sign-Up modes
+    function toggleSignInSignUp() {
+      isSignUp = !isSignUp;
+      formTitle.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+      actionBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+      switchLink.textContent = isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up";
+      errorMessage.textContent = '';
+      successMessage.textContent = '';
+    }
+
+    // Switch between Sign-In and Sign-Up
+    switchLink.addEventListener('click', toggleSignInSignUp);
+
+    // Handle Forgot Password
+    forgotPasswordLink.addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim();
+      if (!email) {
+        errorMessage.textContent = 'Please enter your email address.';
+        return;
+      }
+
+      try {
+        await sendPasswordResetEmail(auth, email);
+        successMessage.textContent = 'Password reset email sent! Check your inbox.';
+      } catch (error) {
+        const customMessage = errorMessages[error.code] || "Incorrect Password. Please try again.";
+        errorMessage.textContent = customMessage;
+      }
+    });
+  </script>
+</body>
+</html>

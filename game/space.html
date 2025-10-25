@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Space Rocket Game</title>
+<style>
+body {
+  margin: 0;
+  background: #000;
+  overflow: hidden;
+}
+canvas {
+  display: block;
+  margin: 0 auto;
+  background: #050025;
+  box-shadow: 0 0 24px #000a;
+}
+.info {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgb(255, 231, 13);
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  z-index: 2;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.9),
+               0 0 20px rgba(255, 255, 255, 0.8),
+               0 0 30px rgba(255, 255, 255, 0.6);
+}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+<div class="info" id="info">🚀 Reach the Planet! 🌌</div>
+
+<script>
+const leftPlanet = new Image();
+leftPlanet.src = "mars.png";
+const rightPlanet = new Image();
+rightPlanet.src = "jupiter.png";
+const rocketImg = new Image();
+rocketImg.src = "rocket.png";
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+const info = document.getElementById('info');
+
+const rocket = { w: 80, h: 120, x: W/2 - 40, y: H - 140, speedY: 4 };
+const planets = [
+  { name: "Mars", x: 20, y: 50, w: 60, h: 60 },
+  { name: "Jupiter", x: W - 80, y: 50, w: 60, h: 60 }
+];
+
+let movingToPlanet = false;
+let targetPlanet = null;
+let gameOver = false;
+let glowPhase = 0;
+
+function drawBackground() {
+  ctx.fillStyle = '#050025';
+  ctx.fillRect(0, 0, W, H);
+
+  glowPhase += 0.05;
+  const glow = Math.sin(glowPhase) * 0.5 + 0.5;
+
+  planets.forEach(p => {
+    ctx.shadowBlur = 20 * glow;
+    ctx.shadowColor = `rgba(255,255,255,${0.3 + glow*0.3})`;
+    if (p.name === "Mars" && leftPlanet.complete) ctx.drawImage(leftPlanet, p.x, p.y, p.w, p.h);
+    if (p.name === "Jupiter" && rightPlanet.complete) ctx.drawImage(rightPlanet, p.x, p.y, p.w, p.h);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px Arial';
+    ctx.fillText(p.name, p.x, p.y - 6);
+  });
+}
+
+function drawRocket() {
+  if (rocketImg.complete && rocketImg.naturalWidth !== 0) ctx.drawImage(rocketImg, rocket.x, rocket.y, rocket.w, rocket.h);
+}
+
+function moveToPlanet() {
+  if (!targetPlanet) return;
+  const targetX = targetPlanet.x + targetPlanet.w/2 - rocket.w/2;
+  const targetY = targetPlanet.y + targetPlanet.h/2 - rocket.h/2;
+
+  rocket.x += (targetX - rocket.x) * 0.1;
+  rocket.y += (targetY - rocket.y) * 0.05;
+
+  if (Math.abs(rocket.x - targetX) < 2 && Math.abs(rocket.y - targetY) < 2) {
+    movingToPlanet = false;
+    decideResult();
+  }
+}
+
+function decideResult() {
+  gameOver = true;
+  const isWin = Math.random() < 0.5;
+  if (isWin) {
+    info.textContent = "🌟🚀 Mission Success! 🌟";
+    setTimeout(() => window.location.href = "nextLevel.html", 1500);
+  } else {
+    info.textContent = "💥 Mission Failed 💥";
+    setTimeout(() => window.location.reload(), 2000);
+  }
+}
+
+canvas.addEventListener('click', (e) => {
+  if (movingToPlanet || gameOver) return;
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  planets.forEach(p => {
+    if (clickX > p.x && clickX < p.x + p.w && clickY > p.y && clickY < p.y + p.h) {
+      movingToPlanet = true;
+      targetPlanet = p;
+      info.textContent = "🚀 Onward!";
+    }
+  });
+});
+
+let imagesLoaded = 0;
+const totalImages = 3;
+[leftPlanet, rightPlanet, rocketImg].forEach(img => img.onload = () => {
+  imagesLoaded++;
+  if (imagesLoaded === totalImages) gameLoop();
+});
+
+function gameLoop() {
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  if (movingToPlanet) moveToPlanet();
+  drawRocket();
+  requestAnimationFrame(gameLoop);
+}
+</script>
+</body>
+</html>

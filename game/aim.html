@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pull and Aim Archery Game</title>
+<style>
+  body {
+    margin: 0;
+    background: #fff;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    margin: 0 auto;
+    background: #f0f0f0;
+  }
+  .info {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #333;
+    font-family: Arial, sans-serif;
+    font-size: 20px;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+<div class="info" id="info">Pull the arrow back and release to shoot!</div>
+<canvas id="gameCanvas"></canvas>
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  let W = window.innerWidth;
+  let H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+
+  const info = document.getElementById("info");
+
+  // Archer position and sizes
+  const bow = { x: W * 0.2, y: H * 0.5, radius: 50 };
+  const arrowLength = 80;
+  
+
+  // Targets on the right
+  const targets = [
+    { x: W * 0.8, y: H * 0.35, r: 40, label: "Soothing", correct: false },
+    { x: W * 0.8, y: H * 0.65, r: 40, label: "Insulting", correct: false },
+  ];
+
+  // Random correct target
+  const correctIndex = Math.random() < 0.5 ? 0 : 1;
+  targets[correctIndex].correct = true;
+
+  // Arrow properties
+  let arrow = {
+    x: bow.x,
+    y: bow.y,
+    angle: 0,
+    power: 0,
+    shooting: false,
+    released: false,
+    velocityX: 0,
+    velocityY: 0,
+  };
+
+  // Aiming state
+  let aiming = false;
+  let aimStart = null;
+  let aimCurrent = null;
+
+  // Limit max pull distance for power
+  const maxPullDist = 150;
+
+  // Draw the bow (simple arc)
+  function drawBow() {
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(bow.x, bow.y, bow.radius, Math.PI / 2, Math.PI * 1.5, false);
+    ctx.stroke();
+  }
+
+  // Draw the arrow at position with angle
+  function drawArrow(x, y, angle) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = "brown";
+    ctx.fillRect(0, -5, arrowLength, 10);
+    // Arrowhead
+    ctx.beginPath();
+    ctx.moveTo(arrowLength, 0);
+    ctx.lineTo(arrowLength - 15, -7);
+    ctx.lineTo(arrowLength - 15, 7);
+    ctx.closePath();
+    ctx.fillStyle = "darkred";
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Draw targets
+  function drawTargets() {
+    targets.forEach((t) => {
+      // Target rings (standard archery colors)
+      const colors = ["white", "black", "blue", "red", "yellow"];
+      const ringWidths = [40, 32, 24, 16, 8];
+      for (let i = 0; i < colors.length; i++) {
+        ctx.beginPath();
+        ctx.fillStyle = colors[i];
+        ctx.arc(t.x, t.y, ringWidths[i], 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Label in white center
+      ctx.fillStyle = "white";
+      ctx.font = "bold 16px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(t.label, t.x, t.y);
+    });
+  }
+
+  // Draw dotted trajectory line for aiming
+  function drawTrajectoryLine(startX, startY, angle, power) {
+    ctx.strokeStyle = "rgba(0,0,0,0.5)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 10]);
+    ctx.beginPath();
+
+    const points = 20;
+    for (let i = 0; i < points; i++) {
+      const t = i / points;
+      // Simple parabolic path (no gravity for simplicity)
+      const x = startX + Math.cos(angle) * power * t * 30;
+      const y = startY + Math.sin(angle) * power * t * 30;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Reset the arrow to bow position
+  function resetArrow() {
+    arrow.x = bow.x;
+    arrow.y = bow.y;
+    arrow.shooting = false;
+    arrow.released = false;
+    arrow.velocityX = 0;
+    arrow.velocityY = 0;
+    aiming = false;
+    aimStart = null;
+    aimCurrent = null;
+    info.textContent = "Pull the arrow back and release to shoot!";
+  }
+
+  // Update arrow position during flight
+  function updateArrow() {
+    if (!arrow.released) return;
+
+    arrow.x += arrow.velocityX;
+    arrow.y += arrow.velocityY;
+
+    // Check collisions with targets
+    for (let i = 0; i < targets.length; i++) {
+      const t = targets[i];
+      const dx = arrow.x - t.x;
+      const dy = arrow.y - t.y;
+      if (Math.sqrt(dx * dx + dy * dy) < t.r) {
+        arrow.released = false;
+        if (t.correct) {
+          info.textContent = "✅ Correct!";
+          setTimeout(() => (window.location.href = "foot.html"), 4000);
+        } else {
+          info.textContent = "❌ Wrong! Restarting...";
+          setTimeout(() => location.reload(), 2000);
+        }
+      }
+    }
+
+    // Out of bounds reset
+    if (arrow.x > W || arrow.x < 0 || arrow.y > H || arrow.y < 0) {
+      arrow.released = false;
+      setTimeout(() => location.reload(), 2000);
+    }
+  }
+
+  // Draw the entire scene
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Draw bow
+    drawBow();
+
+    // Draw targets
+    drawTargets();
+
+    // Draw arrow
+    if (aiming && aimStart && aimCurrent) {
+      // Calculate angle and power from pullback vector
+      const dx = aimStart.x - aimCurrent.x;
+      const dy = aimStart.y - aimCurrent.y;
+      let angle = Math.atan2(dy, dx);
+      let dist = Math.min(Math.sqrt(dx * dx + dy * dy), maxPullDist);
+
+      drawTrajectoryLine(bow.x, bow.y, angle, dist / 10);
+
+      // Draw arrow pulled back
+      const arrowX = bow.x - Math.cos(angle) * dist;
+      const arrowY = bow.y - Math.sin(angle) * dist;
+      drawArrow(arrowX, arrowY, angle);
+    } else {
+      // Draw arrow at rest on bow
+      drawArrow(bow.x, bow.y, 0);
+    }
+
+    // Draw flying arrow
+    if (arrow.released) {
+      drawArrow(arrow.x, arrow.y, arrow.angle);
+    }
+  }
+
+  // Handle pointer events (supports mouse and touch)
+  function onPointerDown(e) {
+    if (arrow.released) return; // don't allow new shot while flying
+    aiming = true;
+    aimStart = { x: bow.x, y: bow.y };
+    aimCurrent = getPointerPos(e);
+  }
+
+  function onPointerMove(e) {
+    if (!aiming) return;
+    aimCurrent = getPointerPos(e);
+  }
+
+  function onPointerUp(e) {
+    if (!aiming) return;
+    aiming = false;
+
+    // Calculate pullback vector for angle & power
+    const dx = aimStart.x - aimCurrent.x;
+    const dy = aimStart.y - aimCurrent.y;
+    let angle = Math.atan2(dy, dx);
+    let dist = Math.min(Math.sqrt(dx * dx + dy * dy), maxPullDist);
+
+    arrow.angle = angle;
+    arrow.power = dist / 10;
+    arrow.velocityX = Math.cos(angle) * arrow.power;
+    arrow.velocityY = Math.sin(angle) * arrow.power;
+    arrow.released = true;
+  }
+
+  function getPointerPos(e) {
+    if (e.touches) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else {
+      return { x: e.clientX, y: e.clientY };
+    }
+  }
+
+  canvas.addEventListener("mousedown", onPointerDown);
+  canvas.addEventListener("mousemove", onPointerMove);
+  canvas.addEventListener("mouseup", onPointerUp);
+
+  canvas.addEventListener("touchstart", onPointerDown);
+  canvas.addEventListener("touchmove", onPointerMove);
+  canvas.addEventListener("touchend", onPointerUp);
+
+  function gameLoop() {
+    updateArrow();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+  
+
+  gameLoop();
+</script>
+</body>
+</html>

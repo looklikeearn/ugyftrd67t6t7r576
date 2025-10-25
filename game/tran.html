@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Local Chat Demo</title>
+<style>
+body { font-family: Arial; background: #f4f4f4; display: flex; justify-content: center; padding: 30px; }
+.container { width: 400px; background: white; border-radius: 10px; padding: 15px; box-shadow: 0 0 10px #ccc; }
+.chat-box { height: 300px; overflow-y: auto; border: 1px solid #ccc; border-radius: 10px; padding: 10px; background: #fafafa; display: flex; flex-direction: column; }
+.message { margin: 5px 0; padding: 8px 12px; border-radius: 10px; max-width: 70%; }
+.sender { align-self: flex-end; background: #d1f4ff; }
+.receiver { align-self: flex-start; background: #eaeaea; }
+.controls { display: flex; gap: 5px; margin-top: 10px; }
+input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
+button { padding: 8px 12px; border: none; background: #007bff; color: white; border-radius: 8px; cursor: pointer; }
+button:hover { background: #0056b3; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h3>WhatsApp-Style Chat (Offline Demo)</h3>
+  <div id="chatBox" class="chat-box"></div>
+
+  <div class="controls">
+    <input id="msgInput" placeholder="Type message..." />
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <div style="margin-top:10px;">
+    <button onclick="switchUser()">Switch User (Now: <span id='currentUser'>A</span>)</button>
+  </div>
+</div>
+
+<script>
+let currentUser = "A";
+const chatBox = document.getElementById("chatBox");
+const msgInput = document.getElementById("msgInput");
+const currentUserLabel = document.getElementById("currentUser");
+
+function addMessage(text, sender) {
+  const msg = document.createElement("div");
+  msg.className = "message " + (sender === "A" ? "sender" : "receiver");
+  msg.textContent = sender + ": " + text;
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+document.getElementById("sendBtn").onclick = function () {
+  const text = msgInput.value.trim();
+  if (!text) return;
+  addMessage(text, currentUser);
+  msgInput.value = "";
+};
+
+function switchUser() {
+  currentUser = currentUser === "A" ? "B" : "A";
+  currentUserLabel.textContent = currentUser;
+}
+</script>
+
+</body>
+</html>

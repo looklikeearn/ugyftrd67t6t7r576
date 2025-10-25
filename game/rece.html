@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Receiver Chat (B)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+body{font-family:sans-serif;margin:0;padding:20px;max-width:500px;margin:auto;background:#f4f4f4}
+h2{text-align:center}
+.chat{border:1px solid #ccc;border-radius:10px;background:#fff;padding:10px;height:300px;overflow-y:auto;display:flex;flex-direction:column}
+.msg.self{align-self:flex-end;background:#d7f0ff;margin:4px;padding:6px 10px;border-radius:10px}
+.msg.other{align-self:flex-start;background:#eee;margin:4px;padding:6px 10px;border-radius:10px}
+textarea{width:100%;height:100px}
+button{margin-top:6px;padding:6px 10px}
+</style>
+</head>
+<body>
+<h2>Receiver (B)</h2>
+
+<textarea id="offerText" placeholder="Paste Offer from A"></textarea>
+<button id="acceptOffer">Accept Offer</button>
+<button id="copyAnswer" disabled>Copy Answer</button>
+<textarea id="answerText" placeholder="Answer will appear here"></textarea>
+
+<div class="chat" id="chat"></div>
+<input id="msgBox" placeholder="Type message..." style="width:80%" />
+<button id="sendBtn" disabled>Send</button>
+
+<script>
+const chat=document.getElementById('chat');
+const msgBox=document.getElementById('msgBox');
+const sendBtn=document.getElementById('sendBtn');
+const offerText=document.getElementById('offerText');
+const acceptOffer=document.getElementById('acceptOffer');
+const copyAnswer=document.getElementById('copyAnswer');
+const answerText=document.getElementById('answerText');
+let pc,dc;
+
+function addMsg(txt,cls){let d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;}
+
+async function waitIce(pc){
+  return new Promise(r=>{
+    if(pc.iceGatheringState==='complete')return r();
+    pc.addEventListener('icegatheringstatechange',()=>{if(pc.iceGatheringState==='complete')r();});
+  });
+}
+
+acceptOffer.onclick=async()=>{
+  const sdp=offerText.value.trim();if(!sdp)return alert('Paste offer first');
+  pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  pc.ondatachannel=e=>{
+    dc=e.channel;
+    dc.onopen=()=>{sendBtn.disabled=false;addMsg('[Connected]','other');};
+    dc.onmessage=ev=>addMsg(ev.data,'other');
+  };
+  await pc.setRemoteDescription({type:'offer',sdp});
+  const answer=await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  await waitIce(pc);
+  answerText.value=pc.localDescription.sdp;
+  copyAnswer.disabled=true; // auto copy after setTimeout
+  answerText.select();document.execCommand('copy');
+  copyAnswer.textContent='Copied!';setTimeout(()=>copyAnswer.textContent='Copy Answer',1000);
+};
+
+sendBtn.onclick=()=>{
+  const msg=msgBox.value.trim();if(!msg)return;
+  dc.send(msg);addMsg(msg,'self');msgBox.value='';
+};
+</script>
+</body>
+</html>
