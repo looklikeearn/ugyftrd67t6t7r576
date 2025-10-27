@@ -1,222 +1,367 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Super Car Game</title>
-  <style>
-    body {
-  margin: 0;
-  background: #111;
-  overflow: hidden;
-}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Car Game</title>
 
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #1e1e1e 0%, #000 100%);
+  font-family: 'Arial', sans-serif;
+}
 canvas {
   display: block;
   margin: 0 auto;
-  background: #333;
-  box-shadow: 0 0 24px #000a;
+  background: #2d2d2d;
 }
-
 .info {
   position: absolute;
-  top: 10px;
-  left: 55%;
-  transform: translateX(-50%);
-  color: rgb(255, 231, 13); /* transparent white */
-  font-family: Arial, sans-serif;
-  font-size: 20px;
-  z-index: 2;
+  width: 100%;
+  top: 5%;
+  color: rgb(255, 231, 13);
+  font-size: min(28px, 6vw);
   text-align: center;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.9),
-               0 0 20px rgba(255, 255, 255, 0.8),
-               0 0 30px rgba(255, 255, 255, 0.6);
+  z-index: 10;
+  text-shadow: 0 0 10px rgba(0,0,0,0.7);
 }
-
-  </style>
+button {
+  padding: 14px 24px;
+  font-size: min(20px, 4vw);
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #ffcc00, #ff9900);
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(255, 255, 0, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+  position: absolute;
+}
+button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 15px rgba(255, 255, 0, 0.5);
+}
+button.wrong {
+  background: linear-gradient(145deg, #ff4d4d, #ff0000);
+  color: #fff;
+}
+</style>
 </head>
 <body>
-<canvas id="gameCanvas" width="400" height="600"></canvas>
-<div class="info" id="info">👈🏁-Find-🏁👉</div>
+
+<canvas id="gameCanvas"></canvas>
+<div class="info" id="info">🏎️ </div>
+<button id="btn1">Answer 1</button>
+<button id="btn2">Answer 2</button>
 
 <script>
+// ---------------- Firebase Setup ----------------
+// ---------------- Firebase Setup ----------------
+const firebaseConfig = {
+  apiKey: "AIzaSyAPrVzvydC3GuoMe_ztdOi0CBhvg-Cckxw",
+  authDomain: "crobot-tech.firebaseapp.com",
+  projectId: "crobot-tech",
+  storageBucket: "crobot-tech.firebasestorage.app",
+  messagingSenderId: "913013774056",
+  appId: "1:913013774056:web:b00707f1d9c5f357389b5d",
+  measurementId: "G-CVWVFJ9JHX"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ---------------- Canvas Setup ----------------
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const W = canvas.width;
-const H = canvas.height;
 const info = document.getElementById('info');
-const leftSideImg = new Image();
-leftSideImg.src = "forest.jpg"; // replace with your left side image path
+const btn1 = document.getElementById('btn1');
+const btn2 = document.getElementById('btn2');
 
-const rightSideImg = new Image();
-rightSideImg.src = "forest.jpg"; // replace with your right side image path
+let W, H;
+function resizeCanvas() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
+// ---------------- Game Objects ----------------
+const road = { x: 0, y: 0, width: W, height: H, color: '#444' };
+const laneCount = 2;
+const laneWidth = road.width / laneCount;
 
-// Road setup
-const road = {
-  x: 80,
-  y: 0,
-  width: 240,
-  height: H,
-  color: '#3d3c3c',
-  laneCount: 3
-};
-const laneWidth = road.width / road.laneCount;
-
-// Player car
 const car = {
-  w: 134,
-  h: 120,
-  y: H - 120,
-  lane: 1,
-  x: 0,
-  speedY: 4
+  w: W * 0.35,   // increased from 0.25 → 0.35
+  h: W * 0.35,   // increased from 0.25 → 0.35
+  x: W / 2 - (W * 0.175),
+  y: H - W * 0.35 - 20,
+  moving: false,
+  target: null
 };
-car.x = road.x + car.lane * laneWidth + laneWidth/2 - car.w/2;
 
-// Finish lines
-const finishLines = [
-  { lane: 0, y: 80, w: laneWidth - 20, h: 12 },
-  { lane: 2, y: 80, w: laneWidth - 20, h: 12 }
-];
-
-let movingToFinish = false;
-let targetFinish = null;
+let finishLines = [];
+let glowPhase = 0;
 let gameOver = false;
-let glowPhase = 0; // for pulsing glow
+let showAnswer = null;
+let currentQuestion = "", correctAnswer = "", wrongAnswer = "";
 
+// ---------------- Load Question ----------------
+async function loadRandomQuestion() {
+  try {
+    const snapshot = await db.collection("levels").doc("medium").collection("medium").get();
+    if (!snapshot.empty) {
+      const docs = snapshot.docs;
+      const randomDoc = docs[Math.floor(Math.random() * docs.length)];
+      const data = randomDoc.data();
+      currentQuestion = data.Question || "விளையாட்டு தொடங்குகிறது!";
+      correctAnswer = data["Correct Answer"] || "Correct";
+      wrongAnswer = data["Wrong Answer"] || "Wrong";
+      updateFinishLines();
+    }
+  } catch (err) {
+    console.error("Error loading question:", err);
+    currentQuestion = "⚠️ கேள்வி ஏற்ற முடியவில்லை!";
+  }
+}
+
+// ---------------- Finish Lines ----------------
+function updateFinishLines() {
+  // keep buttons at top
+  const btnTop = 50; // fixed top for buttons
+  finishLines = [
+    { lane: 0, y: btnTop, w: laneWidth - 40, h: 60, answer: correctAnswer },
+    { lane: 1, y: btnTop, w: laneWidth - 40, h: 60, answer: wrongAnswer }
+  ];
+  shuffle(finishLines);
+  positionButtons();
+  btn1.classList.remove("wrong");
+  btn2.classList.remove("wrong");
+  gameOver = false;
+  showAnswer = null;
+}
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+// ---------------- Position Buttons ----------------
+function positionButtons() {
+  finishLines.forEach((f, index) => {
+    const btn = index === 0 ? btn1 : btn2;
+    btn.style.width = `${f.w}px`;
+    btn.style.height = `${f.h}px`;
+    btn.style.left = `${road.x + f.lane * laneWidth + 20}px`;
+    btn.style.top = `${f.y}px`;
+    btn.textContent = f.answer;
+  });
+}
+
+// ---------------- Car Image ----------------
+const carImg = new Image();
+carImg.src = "car.png";
+
+// ---------------- Draw ----------------
 function drawRoad() {
-  // Left side
-  if (leftSideImg.complete) {
-    ctx.drawImage(leftSideImg, 0, 0, road.x, H);
-  } else {
-    leftSideImg.onload = () => ctx.drawImage(leftSideImg, 0, 0, road.x, H);
-  }
-
-  // Right side
-  const rightX = road.x + road.width;
-  const rightWidth = W - rightX;
-  if (rightSideImg.complete) {
-    ctx.drawImage(rightSideImg, rightX, 0, rightWidth, H);
-  } else {
-    rightSideImg.onload = () => ctx.drawImage(rightSideImg, rightX, 0, rightWidth, H);
-  }
-
-  // Main road
   ctx.fillStyle = road.color;
   ctx.fillRect(road.x, road.y, road.width, road.height);
-
-  // Lane lines
-  ctx.strokeStyle = '#fff';
+  ctx.strokeStyle = "#fff";
   ctx.lineWidth = 4;
-  ctx.setLineDash([28, 28]);
-  for (let i = 1; i < road.laneCount; i++) {
-    const lx = road.x + i * laneWidth;
-    ctx.beginPath();
-    ctx.moveTo(lx, 0);
-    ctx.lineTo(lx, H);
-    ctx.stroke();
-  }
+  ctx.setLineDash([30, 30]);
+  const midX = road.x + laneWidth;
+  ctx.beginPath();
+  ctx.moveTo(midX, 0);
+  ctx.lineTo(midX, H);
+  ctx.stroke();
   ctx.setLineDash([]);
 }
 
-
-
-// Draw glowing finish lines
 function drawFinishLines() {
   glowPhase += 0.05;
-  const glowIntensity = Math.sin(glowPhase) * 0.5 + 0.5; // 0–1 pulsing
-  for (let f of finishLines) {
-    const fx = road.x + f.lane * laneWidth + 10;
-    const glowColor = `rgba(255,255,100,${0.3 + glowIntensity * 0.4})`;
-
-    // Glow effect
+  const glowIntensity = Math.sin(glowPhase) * 0.5 + 0.5;
+  finishLines.forEach(f => {
+    const fx = road.x + f.lane * laneWidth + 20;
     ctx.shadowBlur = 20 * glowIntensity;
-    ctx.shadowColor = glowColor;
-
-    // Draw checker pattern
-    for (let i = 0; i < f.w; i += 10) {
-      ctx.fillStyle = (i / 10) % 2 === 0 ? '#fff' : '#000';
-      ctx.fillRect(fx + i, f.y, 10, f.h);
-    }
-
-    // Reset shadow
+    ctx.shadowColor = `rgba(255,255,100,${0.3 + glowIntensity * 0.4})`;
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(fx, f.y, f.w, f.h);
     ctx.shadowBlur = 0;
+  });
+}
 
-    // Finish text
-    ctx.fillStyle = '#fff';
-    ctx.font = '12px Arial';
-    ctx.fillText('FINISH', fx + f.w / 4, f.y - 4);
+function drawCar() {
+  if (carImg.complete) ctx.drawImage(carImg, car.x, car.y, car.w, car.h);
+}
+
+function drawQuestionNearCar() {
+  ctx.save();
+  ctx.shadowColor = 'rgba(255, 50, 50, 0.8)'; // 🔥 glow color
+  ctx.shadowBlur = 15;
+  ctx.fillStyle = 'rgb(255, 80, 80)'; // 🟥 text color
+  ctx.font = `bold ${Math.min(32, W * 0.05)}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  
+  const x = car.x + car.w / 2;
+  const y = car.y - 10;
+  const text = currentQuestion;
+
+  // Draw wrapped text with border and fill
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = 'white'; // 🟦 border color
+  wrapTextWithBorder(ctx, text, x, y, laneWidth - 20, 28);
+  ctx.restore();
+}
+
+
+// helper to draw text with both stroke and fill
+function wrapTextWithBorder(context, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + ' ';
+    const metrics = context.measureText(testLine);
+    if (metrics.width > maxWidth && n > 0) {
+      context.strokeText(line, x, y);
+      context.fillText(line, x, y);
+      line = words[n] + ' ';
+      y += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  context.strokeText(line, x, y);
+  context.fillText(line, x, y);
+}
+
+
+function drawCenterAnswer() {
+  if (!showAnswer) return;
+  ctx.fillStyle = '#00ff00';
+  ctx.shadowBlur = 25;
+  ctx.shadowColor = '#00ff00';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  let fontSize = Math.min(96, W * 0.15);
+  ctx.font = `${fontSize}px Arial Black`;
+
+  const textWidth = ctx.measureText(showAnswer).width;
+  if (textWidth > W * 0.9) {
+    fontSize *= (W * 0.9 / textWidth);
+    ctx.font = `${fontSize}px Arial Black`;
+  }
+
+  ctx.fillText(showAnswer.toUpperCase(), W / 2, H / 2);
+  ctx.shadowBlur = 0;
+}
+
+function wrapText(context, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + ' ';
+    const metrics = context.measureText(testLine);
+    if (metrics.width > maxWidth && n > 0) {
+      context.fillText(line, x, y);
+      line = words[n] + ' ';
+      y += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  context.fillText(line, x, y);
+}
+
+// ---------------- Game Logic ----------------
+function handleAnswerClick(index) {
+  if (car.moving || gameOver) return;
+  car.target = finishLines[index];
+  car.moving = true;
+  info.textContent = "🏎️";
+  if (finishLines[index].answer !== correctAnswer) {
+    if (index === 0) btn1.classList.add("wrong");
+    else btn2.classList.add("wrong");
   }
 }
 
-// Load car image
-const carImg = new Image();
-carImg.src = "car.png"; // 👈 replace with your image path
-
-function drawCar(x, y) {
-  if (carImg.complete) {
-    ctx.drawImage(carImg, x, y, car.w, car.h);
-  } else {
-    carImg.onload = () => ctx.drawImage(carImg, x, y, car.w, car.h);
-  }
-}
-
-
-function moveToFinish() {
-  if (!targetFinish) return;
-  const targetX = road.x + targetFinish.lane * laneWidth + laneWidth / 2 - car.w / 2;
-
+function moveCar() {
+  if (!car.target) return;
+  const targetX = road.x + car.target.lane * laneWidth + laneWidth / 2 - car.w / 2;
+  const targetY = car.target.y + car.target.h + 20;
   car.x += (targetX - car.x) * 0.1;
-  car.y -= car.speedY;
+  car.y += (targetY - car.y) * 0.05;
 
-  if (car.y + car.h < targetFinish.y + targetFinish.h) {
-    movingToFinish = false;
-    decideResult();
-  }
+  if (Math.abs(car.y - targetY) < 3) decideResult(car.target.answer);
 }
 
-function decideResult() {
+function decideResult(answer) {
   gameOver = true;
-  const isWin = Math.random() < 0.5;
-  if (isWin) {
-    info.textContent = "🏆🏆🏆👑👑👑🏆🏆🏆";
-    setTimeout(() => window.location.href = "football.html", 1500);
+  car.moving = false;
+  if (answer === correctAnswer) {
+    showAnswer = answer;
+    info.textContent = `✅ ${answer} ✅`;
+    speakAnswer(answer);
+    setTimeout(() => window.location.href = "football.html", 2500);
   } else {
     info.textContent = "❌❌❌❌❌❌";
-    setTimeout(() => window.location.reload(), 2000);
+    setTimeout(() => {
+      resetCar();
+      loadRandomQuestion();
+    }, 2000);
   }
 }
 
-// Click/touch detection for finish lines
-canvas.addEventListener('click', (e) => {
-  if (movingToFinish || gameOver) return;
-  const rect = canvas.getBoundingClientRect();
-  const clickX = e.clientX - rect.left;
-  const clickY = e.clientY - rect.top;
+function resetCar() {
+  car.x = W / 2 - (W * 0.125);
+  car.y = H - W * 0.25 - 20;
+  car.moving = false;
+  car.target = null;
+  gameOver = false;
+  showAnswer = null;
+  btn1.classList.remove("wrong");
+  btn2.classList.remove("wrong");
+  positionButtons();
+}
 
-  for (let f of finishLines) {
-    const fx = road.x + f.lane * laneWidth + 10;
-    if (clickX > fx && clickX < fx + f.w && clickY > f.y && clickY < f.y + f.h) {
-      movingToFinish = true;
-      targetFinish = f;
-      info.textContent = "Never Give Up";
-    }
-  }
-});
+function speakAnswer(text) {
+  if (!window.speechSynthesis) return;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'en-US';
+  utter.pitch = 1.2;
+  utter.rate = 0.9;
+  window.speechSynthesis.speak(utter);
+}
 
+// ---------------- Game Loop ----------------
 function gameLoop() {
   ctx.clearRect(0, 0, W, H);
   drawRoad();
   drawFinishLines();
-
-  if (movingToFinish) moveToFinish();
-
-  drawCar(car.x, car.y);
+  drawCar();
+  drawQuestionNearCar();
+  drawCenterAnswer();
+  if (car.moving) moveCar();
   requestAnimationFrame(gameLoop);
 }
 
+// ---------------- Start ----------------
+btn1.addEventListener('click', () => handleAnswerClick(0));
+btn2.addEventListener('click', () => handleAnswerClick(1));
+loadRandomQuestion();
 gameLoop();
+
 </script>
 </body>
 </html>

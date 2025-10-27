@@ -2,29 +2,54 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>TV Game</title>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
 <style>
-body {
+html, body {
   margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
   background: #222;
   overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  touch-action: none;
 }
+
 canvas {
   display: block;
   margin: 0 auto;
   background: #333;
+  width: 100%;
+  height: 100%;
 }
+
 .info {
-  position: absolute;
+  position: fixed;
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
   color: rgb(255, 231, 13);
   font-family: Arial, sans-serif;
-  font-size: 20px;
+  font-size: min(18px, 4.5vw);
   z-index: 2;
   text-align: center;
+  width: 90%;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+@media (max-width: 480px) {
+  .info {
+    font-size: 4vw;
+    top: 8px;
+  }
 }
 </style>
 </head>
@@ -33,42 +58,93 @@ canvas {
 <div class="info" id="info">Swipe the remote!</div>
 
 <script>
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyAPrVzvydC3GuoMe_ztdOi0CBhvg-Cckxw",
+  authDomain: "crobot-tech.firebaseapp.com",
+  projectId: "crobot-tech",
+  storageBucket: "crobot-tech.firebasestorage.app",
+  messagingSenderId: "913013774056",
+  appId: "1:913013774056:web:b00707f1d9c5f357389b5d",
+  measurementId: "G-CVWVFJ9JHX"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
-
-const W = canvas.width;
-const H = canvas.height;
+let W = window.innerWidth;
+let H = window.innerHeight;
+let tvWidth, tvHeight, tvSpacing, tvX, tv1Y, isPortrait;
 const info = document.getElementById('info');
 
+// Resize canvas responsively
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
 
-const tvWidth = W * 0.4;
-const tvHeight = H * 0.2;
-const tvSpacing = W * 0.1;
+  tvWidth = W * 0.4;
+  tvHeight = H * 0.3;
+  tvSpacing = W * 0.05;
+  tvX = (W - (tvWidth * 2 + tvSpacing)) / 2;
+  tv1Y = H * 0.25;
+  isPortrait = W < H;
+
+  if (tvs) {
+    tvs[0].x = tvX; tvs[0].y = tv1Y; tvs[0].w = tvWidth; tvs[0].h = tvHeight;
+    tvs[1].x = tvX + tvWidth + tvSpacing; tvs[1].y = tv1Y; tvs[1].w = tvWidth; tvs[1].h = tvHeight;
+  }
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+let currentQuestion = "";
+let correctAnswer = "";
+let wrongAnswer = "";
+
+async function loadRandomQuestion() {
+  try {
+    const snapshot = await db.collection('levels').doc('medium').collection('medium').get();
+    if (!snapshot.empty) {
+      const docs = snapshot.docs;
+      const randomDoc = docs[Math.floor(Math.random() * docs.length)];
+      const data = randomDoc.data();
+      currentQuestion = data.Question || "நீங்க தூங்கினீங்களா?";
+      correctAnswer = data["Correct Answer"] || "Did you sleep?";
+      wrongAnswer = data["Wrong Answer"] || "Did you slept?";
+      updateTVs();
+    }
+  } catch (error) {
+    console.error("Error loading question:", error);
+  }
+}
 
 const tvs = [
-  { x: W*0.05, y: H*0.15, w: tvWidth, h: tvHeight, on: false, img: new Image() },
-  { x: W*0.05 + tvWidth + tvSpacing, y: H*0.15, w: tvWidth, h: tvHeight, on: false, img: new Image() }
+  { x: 0, y: 0, w: 0, h: 0, on: false, answer: "" },
+  { x: 0, y: 0, w: 0, h: 0, on: false, answer: "" }
 ];
 
+function updateTVs() {
+  const correctTvIndex = Math.random() < 0.5 ? 0 : 1;
+  tvs[correctTvIndex].answer = correctAnswer;
+  tvs[1 - correctTvIndex].answer = wrongAnswer;
+  tvs[0].on = false;
+  tvs[1].on = false;
+  remote.disabled = false;
+  remote.angle = 90;
+  info.textContent = "Swipe the remote!";
+}
 
-// Add separate images inside TVs
-tvs[0].img.src = "vijay.jpg";  
-tvs[1].img.src = "ajith.jpeg"; 
+loadRandomQuestion();
 
-// Randomly choose correct TV
-const correctIndex = Math.random() < 0.5 ? 0 : 1;
+const remote = { x: W / 2, y: H * 0.8, w: W * 0.15, h: H * 0.03, angle: 90, disabled: false };
 
-// Remote properties
-const remote = { x: W/2, y: H*0.8, w: W*0.15, h: H*0.03, angle: 90, disabled: false };
-
-// Draw TVs
 function drawTV(tv) {
   ctx.fillStyle = '#111';
   ctx.fillRect(tv.x, tv.y, tv.w, tv.h);
@@ -76,49 +152,55 @@ function drawTV(tv) {
   ctx.lineWidth = 2;
   ctx.strokeRect(tv.x, tv.y, tv.w, tv.h);
 
-  if (tv.on && tv.img.complete) {
-    ctx.drawImage(tv.img, tv.x+10, tv.y+10, tv.w-20, tv.h-20);
-  }
+  const fontSize = Math.min(tv.w * 0.12, tv.h * 0.18);
+  ctx.fillStyle = tv.on ? '#00ff00' : '#fff';
+  ctx.font = `${fontSize}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const maxWidth = tv.w * 0.9;
+  wrapText(ctx, tv.answer, tv.x + tv.w / 2, tv.y + tv.h / 2, maxWidth, fontSize * 1.2);
 }
 
-// Draw remote
 function drawRemote() {
   ctx.save();
   ctx.translate(remote.x, remote.y);
   ctx.rotate(remote.angle * Math.PI / 180);
   ctx.fillStyle = '#555';
-  ctx.fillRect(-remote.w/2, -remote.h/2, remote.w, remote.h);
+  ctx.fillRect(-remote.w / 2, -remote.h / 2, remote.w, remote.h);
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 2;
-  ctx.strokeRect(-remote.w/2, -remote.h/2, remote.w, remote.h);
+  ctx.strokeRect(-remote.w / 2, -remote.h / 2, remote.w, remote.h);
   ctx.restore();
 }
 
-// Handle TV selection
 function selectTV(index) {
   if (remote.disabled) return;
   remote.disabled = true;
-
-  if (index === 0) remote.angle = 45;
-  else remote.angle = 135;
-
+  remote.angle = index === 0 ? 45 : 135;
   tvs[index].on = true;
-  tvs[1-index].on = false;
+  tvs[1 - index].on = false;
 
-  if (index === correctIndex) {
-    info.textContent = "🏆🏆🏆👑👑👑🏆🏆🏆";
-    setTimeout(() => {
-      window.location.href = "ball.html";
-    }, 4000); // wait 4 seconds
+  if (tvs[index].answer === correctAnswer) {
+    // Show correct answer and speak
+    info.textContent = `🏆 ${correctAnswer} 🏆`;
+    speakText(correctAnswer);
+    setTimeout(() => window.location.href = "ball.html", 2000);
   } else {
-    info.textContent = "❌❌❌❌❌❌❌";
-    setTimeout(() => {
-      window.location.reload();
-    }, 2000); // restart after 2 seconds
+    // Show wrong selection + correct answer, do NOT speak
+    info.textContent = `❌ தவறான பதில்! Correct: ${correctAnswer} ❌`;
+    setTimeout(loadRandomQuestion, 2000);
   }
 }
 
-// Touch events for mobile
+// Speech function
+function speakText(text) {
+  if ('speechSynthesis' in window) {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US'; // change to 'ta-IN' for Tamil speech
+    window.speechSynthesis.speak(utter);
+  }
+}
+
 let touchStartX = 0;
 canvas.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
 canvas.addEventListener('touchend', e => {
@@ -127,29 +209,48 @@ canvas.addEventListener('touchend', e => {
   else selectTV(1);
 });
 
-// Mouse click (for testing)
 canvas.addEventListener('click', e => {
   const clickX = e.clientX - canvas.getBoundingClientRect().left;
-  if (clickX < W/2) selectTV(0);
+  if (clickX < W / 2) selectTV(0);
   else selectTV(1);
 });
 
+function wrapText(context, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + ' ';
+    const metrics = context.measureText(testLine);
+    if (metrics.width > maxWidth && n > 0) {
+      context.fillText(line, x, y);
+      line = words[n] + ' ';
+      y += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  context.fillText(line, x, y);
+}
+
 function gameLoop() {
   ctx.clearRect(0, 0, W, H);
-
-  // Draw wall
   ctx.fillStyle = '#333';
-  ctx.fillRect(0,0,W,H);
-
-  // Draw TVs
+  ctx.fillRect(0, 0, W, H);
   tvs.forEach(drawTV);
-
-  // Draw remote
   drawRemote();
+
+  ctx.fillStyle = '#fff';
+  const questionFontSize = Math.min(W * 0.05, H * 0.045);
+  ctx.font = `${questionFontSize}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const questionY = H * 0.65;
+  wrapText(ctx, currentQuestion, W / 2, questionY, W * 0.85, questionFontSize * 1.2);
 
   requestAnimationFrame(gameLoop);
 }
 
+resizeCanvas();
 gameLoop();
 </script>
 </body>

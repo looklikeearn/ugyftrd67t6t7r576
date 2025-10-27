@@ -3,12 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Super Football Game</title>
+<title>Super Football Game ⚽</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
 <style>
-  /* Reset & basic */
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
   body, html {
     margin: 0; padding: 0;
     height: 100%;
@@ -53,147 +55,162 @@
     min-width: 280px;
     text-align: center;
   }
+  #answerDisplay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: clamp(28px, 8vw, 60px);
+    font-weight: 900;
+    color: #00ff88;
+    text-shadow: 0 0 20px #00ff88, 0 0 40px #00ff88;
+    display: none;
+    z-index: 15;
+  }
   @media (max-width: 400px) {
-    #info {
-      font-size: 16px;
-      min-width: 200px;
-      padding: 8px 16px;
-    }
+    #info { font-size: 16px; min-width: 200px; padding: 8px 16px; }
   }
 </style>
 </head>
 <body>
 <div id="container">
   <canvas id="footballCanvas"></canvas>
-  <div id="info"></div>
+  <div id="info">Loading question...</div>
+  <div id="answerDisplay"></div>
 </div>
 
 <script>
-(() => {
+(async () => {
+  // ---------------- FIREBASE SETUP ----------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyAPrVzvydC3GuoMe_ztdOi0CBhvg-Cckxw",
+    authDomain: "crobot-tech.firebaseapp.com",
+    projectId: "crobot-tech",
+    storageBucket: "crobot-tech.appspot.com",
+    messagingSenderId: "913013774056",
+    appId: "1:913013774056:web:b00707f1d9c5f357389b5d",
+    measurementId: "G-CVWVFJ9JHX"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // ---------------- LOAD QUESTION ----------------
+  let currentQuestion = "Loading...";
+  let correctAnswer = "";
+  let wrongAnswer = "";
+  let correctGoal = Math.random() < 0.5 ? 'top' : 'bottom';
+
+  async function loadRandomQuestion() {
+    try {
+      const snapshot = await db.collection("levels").doc("medium").collection("medium").get();
+      if (!snapshot.empty) {
+        const docs = snapshot.docs;
+        const randomDoc = docs[Math.floor(Math.random() * docs.length)];
+        const data = randomDoc.data();
+        currentQuestion = data.Question || "No question";
+        correctAnswer = data["Correct Answer"] || "Correct";
+        wrongAnswer = data["Wrong Answer"] || "Wrong";
+        info.textContent = "Swipe to kick the ball!";
+      } else {
+        currentQuestion = "⚠️ No questions found!";
+        correctAnswer = "A";
+        wrongAnswer = "B";
+      }
+    } catch (err) {
+      console.error("Error loading question:", err);
+      currentQuestion = "⚠️ Error loading question!";
+    }
+  }
+
+  // ---------------- CANVAS SETUP ----------------
   const canvas = document.getElementById('footballCanvas');
   const ctx = canvas.getContext('2d');
   const info = document.getElementById('info');
+  const answerDisplay = document.getElementById('answerDisplay');
 
-  // Responsive sizing function
   function resizeCanvas() {
     const w = Math.min(window.innerWidth, 600);
     const h = Math.min(window.innerHeight * 0.9, 700);
     canvas.width = w;
     canvas.height = h;
   }
-
-  // Initial resize and bind resize event
   resizeCanvas();
-  window.addEventListener('resize', () => {
-    resizeCanvas();
-    resetBall(); // Reset ball on resize for consistency
-  });
+  window.addEventListener('resize', () => { resizeCanvas(); resetBall(); });
 
-  // Variables for canvas dimensions
-  let W = canvas.width;
-  let H = canvas.height;
-
-  // Ball object
-  let ball = { x: W / 2, y: H / 2, r: 18, vx: 0, vy: 0, moving: false };
-
-  // Scores removed (per user request)
-
-  // Random correct goal (either 'top' or 'bottom') and target center
-  let correctGoal = Math.random() < 0.5 ? 'top' : 'bottom';
-  // initialize targetCenter now; y will be set later in updateTargetCenter()
-  let targetCenter = { x: W / 2, y: 0 };
-
-
-  // Swipe tracking
-  let swipeStart = null;
-  let swipeEnd = null;
-  let lastTouch = null;
-
-  // Goal dimensions relative to canvas size
+  let W = canvas.width, H = canvas.height;
   const goalWidthRatio = 0.4;
   const goalHeight = 50;
   const friction = 0.97;
 
-  // Keeper images placeholders (replace src with actual images if you have)
-  const keeperLeft = new Image();
-  keeperLeft.src = "bheem.png";
+  let ball = { x: W / 2, y: H / 2, r: 18, vx: 0, vy: 0, moving: false };
 
-  const keeperRight = new Image();
-  keeperRight.src = "bheem.png";
+  // ---------------- GOAL KEEPERS (visual only) ----------------
+  const keeperImg = new Image();
+  keeperImg.src = "bheem.png"; // decorative only
 
-  // Keeper animation state, positions relative to canvas size and goals
   const keeper = {
-    left: { x: 0, y: goalHeight + 10, width: 60, height: 90, dir: 1, speed: 1.5, offset: 0 },
-    right: { x: 0, y: 0, width: 60, height: 90, dir: 1, speed: 1.5, offset: 0 }
+    top: { x: 0, y: goalHeight + 5, width: 60, height: 90, dir: 1, speed: 1.8, offset: 0 },
+    bottom: { x: 0, y: 0, width: 60, height: 90, dir: 1, speed: 1.8, offset: 0 }
   };
 
-  // Update keeper positions on resize
   function updateKeepersPosition() {
     const goalWidth = W * goalWidthRatio;
-    keeper.left.y = goalHeight + 10;
-    keeper.left.offset = 0;
-    keeper.left.x = W / 2 - goalWidth / 2 + 20;
-
-    keeper.right.y = H - goalHeight - keeper.right.height - 10;
-    keeper.right.offset = 0;
-    keeper.right.x = W / 2 - goalWidth / 2 + 20;
-    // update target center after keepers/size update
-    updateTargetCenter();
+    keeper.top.y = goalHeight + 5;
+    keeper.top.x = W / 2 - goalWidth / 2 + 20;
+    keeper.bottom.y = H - goalHeight - keeper.bottom.height - 5;
+    keeper.bottom.x = W / 2 - goalWidth / 2 + 20;
   }
 
-  updateKeepersPosition();
+  function animateKeepers() {
+    const goalWidth = W * goalWidthRatio;
+    for (const key of ['top', 'bottom']) {
+      const k = keeper[key];
+      k.offset += k.dir * k.speed;
+      if (k.offset > goalWidth - k.width - 40) k.dir = -1;
+      else if (k.offset < 0) k.dir = 1;
+      k.x = W / 2 - goalWidth / 2 + 20 + k.offset;
 
-  // Draw the field
+      if (keeperImg.complete && keeperImg.naturalWidth > 0) {
+        ctx.drawImage(keeperImg, k.x, k.y, k.width, k.height);
+      }
+    }
+  }
+
+  // ---------------- DRAW FIELD ----------------
   function drawField() {
     const goalWidth = W * goalWidthRatio;
-
-    // Background
     ctx.fillStyle = '#144214';
     ctx.fillRect(0, 0, W, H);
 
-    // Center line
     ctx.strokeStyle = '#ffffffbb';
     ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(W / 2, 0);
-    ctx.lineTo(W / 2, H);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
 
-    // Center circle
-    ctx.beginPath();
-    ctx.arc(W / 2, H / 2, 60, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, 60, 0, Math.PI * 2); ctx.stroke();
 
-    // Goals - top and bottom
     ctx.fillStyle = '#ffffffcc';
     ctx.fillRect(W / 2 - goalWidth / 2, 0, goalWidth, goalHeight);
     ctx.fillRect(W / 2 - goalWidth / 2, H - goalHeight, goalWidth, goalHeight);
 
-    // Goal frames
     ctx.strokeStyle = '#f2e394';
     ctx.lineWidth = 3;
     ctx.strokeRect(W / 2 - goalWidth / 2, 0, goalWidth, goalHeight);
     ctx.strokeRect(W / 2 - goalWidth / 2, H - goalHeight, goalWidth, goalHeight);
 
-    // Draw goal labels. One goal is correct (Tokyo) and the other is wrong (New York).
-    const goalCenterX = W / 2;
-    const topLabel = (correctGoal === 'top') ? 'Tokyo' : 'New York';
-    const bottomLabel = (correctGoal === 'bottom') ? 'Tokyo' : 'New York';
+    const topLabel = (correctGoal === 'top') ? correctAnswer : wrongAnswer;
+    const bottomLabel = (correctGoal === 'bottom') ? correctAnswer : wrongAnswer;
+
     ctx.save();
     ctx.fillStyle = '#111';
-    ctx.font = 'bold 16px Segoe UI, Tahoma, sans-serif';
+    ctx.font = 'bold 16px Segoe UI';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    // top goal label
-    ctx.fillText(topLabel, goalCenterX, goalHeight / 2);
-    // bottom goal label
-    ctx.fillText(bottomLabel, goalCenterX, H - goalHeight / 2);
+    ctx.fillText(topLabel, W / 2, goalHeight / 2);
+    ctx.fillText(bottomLabel, W / 2, H - goalHeight / 2);
     ctx.restore();
   }
 
-  // Score display removed
-
-  // Draw the ball with hexagon pattern
+  // ---------------- DRAW BALL ----------------
   function drawBall() {
     ctx.save();
     ctx.beginPath();
@@ -204,229 +221,106 @@
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Hexagon pattern
-    ctx.beginPath();
-    const sides = 6;
-    for (let i = 0; i < sides; i++) {
-      const angle = (Math.PI * 2 / sides) * i - Math.PI / 2;
-      const px = ball.x + Math.cos(angle) * ball.r * 0.6;
-      const py = ball.y + Math.sin(angle) * ball.r * 0.6;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    ctx.fillStyle = '#222';
-    ctx.fill();
-    // Draw outlined bright text for better visibility
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = 'bold 13px Segoe UI, Tahoma, sans-serif';
-    // Add white outline for contrast
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.strokeText('japan capital', ball.x, ball.y);
-    // Fill with bright color
-    ctx.fillStyle = '#ffdd122';
-    ctx.fillText('japan capital', ball.x, ball.y);
+    ctx.font = `bold ${Math.min(13, W * 0.035)}px Segoe UI`;
+    // 🔥 Glowing red question text
+ctx.shadowColor = '#ff2222';
+ctx.shadowBlur = 20;
+ctx.fillStyle = '#ff3333';
+ctx.strokeStyle = '#000';
+ctx.lineWidth = 3;
+ctx.font = `bold ${Math.min(13, W * 0.035)}px Segoe UI`;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.strokeText(currentQuestion, ball.x, ball.y);
+ctx.fillText(currentQuestion, ball.x, ball.y);
+ctx.shadowBlur = 0; // reset shadow after drawing
+
     ctx.restore();
   }
 
-  // Move the ball with friction and bouncing
+  // ---------------- MOVE BALL ----------------
   function moveBall() {
     if (!ball.moving) return;
+    ball.x += ball.vx; ball.y += ball.vy;
+    ball.vx *= friction; ball.vy *= friction;
+    if (Math.abs(ball.vx) < 0.15 && Math.abs(ball.vy) < 0.15) ball.moving = false;
 
-    ball.x += ball.vx;
-    ball.y += ball.vy;
-    ball.vx *= friction;
-    ball.vy *= friction;
-
-    // Stop ball if very slow
-    if (Math.abs(ball.vx) < 0.15 && Math.abs(ball.vy) < 0.15) {
-      ball.vx = 0;
-      ball.vy = 0;
-      ball.moving = false;
-    }
-
-    // Bounce off left and right walls
-    if (ball.x - ball.r < 0) {
-      ball.x = ball.r;
-      ball.vx *= -0.7;
-    }
-    if (ball.x + ball.r > W) {
-      ball.x = W - ball.r;
-      ball.vx *= -0.7;
-    }
-
-    // Bounce on top/bottom outside goal area
     const goalWidth = W * goalWidthRatio;
+    if (ball.x - ball.r < 0) { ball.x = ball.r; ball.vx *= -0.7; }
+    if (ball.x + ball.r > W) { ball.x = W - ball.r; ball.vx *= -0.7; }
 
-    // Top boundary
-    if (ball.y - ball.r < 0) {
-      if (!(ball.x > W/2 - goalWidth/2 && ball.x < W/2 + goalWidth/2)) {
-        ball.y = ball.r;
-        ball.vy *= -0.7;
-      }
+    if (ball.y - ball.r < 0 && !(ball.x > W/2 - goalWidth/2 && ball.x < W/2 + goalWidth/2)) {
+      ball.y = ball.r; ball.vy *= -0.7;
     }
-    // Bottom boundary
-    if (ball.y + ball.r > H) {
-      if (!(ball.x > W/2 - goalWidth/2 && ball.x < W/2 + goalWidth/2)) {
-        ball.y = H - ball.r;
-        ball.vy *= -0.7;
-      }
+    if (ball.y + ball.r > H && !(ball.x > W/2 - goalWidth/2 && ball.x < W/2 + goalWidth/2)) {
+      ball.y = H - ball.r; ball.vy *= -0.7;
     }
   }
 
-  // Animate keepers inside goal frame
-  function animateKeepers() {
-    const goalWidth = W * goalWidthRatio;
-
-    // Left keeper (top goal)
-    const keeperTop = keeper.left;
-    keeperTop.offset += keeperTop.dir * keeperTop.speed;
-    if (keeperTop.offset > goalWidth - keeperTop.width - 40) keeperTop.dir = -1;
-    else if (keeperTop.offset < 0) keeperTop.dir = 1;
-    keeperTop.x = W / 2 - goalWidth / 2 + 20 + keeperTop.offset;
-
-    // Right keeper (bottom goal)
-    const keeperBot = keeper.right;
-    keeperBot.offset += keeperBot.dir * keeperBot.speed;
-    if (keeperBot.offset > goalWidth - keeperBot.width - 40) keeperBot.dir = -1;
-    else if (keeperBot.offset < 0) keeperBot.dir = 1;
-    keeperBot.x = W / 2 - goalWidth / 2 + 20 + keeperBot.offset;
-
-    // Draw keeper images or placeholders
-    if (keeperLeft.complete && keeperLeft.naturalWidth !== 0) {
-      ctx.drawImage(keeperLeft, keeperTop.x, keeperTop.y, keeperTop.width, keeperTop.height);
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.fillRect(keeperTop.x, keeperTop.y, keeperTop.width, keeperTop.height);
-    }
-
-    if (keeperRight.complete && keeperRight.naturalWidth !== 0) {
-      ctx.drawImage(keeperRight, keeperBot.x, keeperBot.y, keeperBot.width, keeperBot.height);
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.fillRect(keeperBot.x, keeperBot.y, keeperBot.width, keeperBot.height);
-    }
-  }
-
-  // Reset ball to center and stop movement
-  function resetBall() {
-    W = canvas.width;
-    H = canvas.height;
-    ball.x = W / 2;
-    ball.y = H / 2;
-    ball.vx = 0;
-    ball.vy = 0;
-    ball.moving = false;
-    updateKeepersPosition();
-    // choose a new random correct goal on reset
-    correctGoal = Math.random() < 0.5 ? 'top' : 'bottom';
-    updateTargetCenter();
-  }
-
-  // Check if a goal scored and display messages
-  let goalMessageTimeout = null;
-  // Update target center based on current canvas size and which goal is correct
-  function updateTargetCenter() {
-    // Choose a random x within the goal frame (with small padding)
-    const goalWidth = W * goalWidthRatio;
-    const pad = 20; // keep marker away from goal edges
-    const minX = W / 2 - goalWidth / 2 + pad;
-    const maxX = W / 2 + goalWidth / 2 - pad;
-    targetCenter.x = Math.random() * (maxX - minX) + minX;
-    targetCenter.y = (correctGoal === 'top') ? (goalHeight / 2) : (H - goalHeight / 2);
-  }
+  // ---------------- CHECK GOAL ----------------
   function checkGoal() {
-  const goalWidth = W * goalWidthRatio;
-
-  // Top goal - right team goal
-  if (ball.y - ball.r < goalHeight &&
-      ball.x > W/2 - goalWidth/2 && ball.x < W/2 + goalWidth/2) {
-    // Determine if this was the correct goal
-    if (correctGoal === 'top') {
-      displayMessage("🏆🏆🏆👑👑👑🏆🏆🏆", 'lime');
-      // short delay so user sees message, then navigate
-      setTimeout(() => { window.location.href = 'bike.html'; }, 900);
-    } else {
-      displayMessage("❌❌❌❌❌❌❌❌❌", 'red');
-      setTimeout(() => { window.location.reload(); }, 1000);
+    const goalWidth = W * goalWidthRatio;
+    // Top goal
+    if (ball.y - ball.r < goalHeight && ball.x > W/2 - goalWidth/2 && ball.x < W/2 + goalWidth/2) {
+      if (correctGoal === 'top') handleCorrectGoal();
+      else handleWrongGoal();
     }
-    return;
-  }
-
-  // Bottom goal - left team goal
-  if (ball.y + ball.r > H - goalHeight &&
-      ball.x > W/2 - goalWidth/2 && ball.x < W/2 + goalWidth/2) {
-    // Determine if this was the correct goal
-    if (correctGoal === 'bottom') {
-      displayMessage("🏆🏆🏆👑👑👑🏆🏆🏆", 'lime');
-      setTimeout(() => { window.location.href = 'bike.html'; }, 900);
-    } else {
-      displayMessage("❌❌❌❌❌❌❌❌❌", 'red');
-      setTimeout(() => { window.location.reload(); }, 1000);
+    // Bottom goal
+    if (ball.y + ball.r > H - goalHeight && ball.x > W/2 - goalWidth/2 && ball.x < W/2 + goalWidth/2) {
+      if (correctGoal === 'bottom') handleCorrectGoal();
+      else handleWrongGoal();
     }
-    return;
   }
 
-  // Wrong goal attempt if ball crosses top/bottom but outside goal area
-  if (ball.y - ball.r < 0 || ball.y + ball.r > H) {
-    displayMessage("❌ Wrong Goal Attempt!", 'red');
-    resetBall();
-  }
-}
-
-
-  // Check if keeper blocks the ball (simple AABB collision)
-  function isKeeperBlocking(k) {
-    return ball.x + ball.r > k.x &&
-           ball.x - ball.r < k.x + k.width &&
-           ball.y + ball.r > k.y &&
-           ball.y - ball.r < k.y + k.height;
+  function handleCorrectGoal() {
+    displayMessage("✅ Correct!", "lime");
+    showAnswer(correctAnswer);
+    speakText(correctAnswer);
+    setTimeout(() => window.location.href = "bike.html", 3000);
   }
 
-  // Display temporary messages in info box
-  function displayMessage(text, color = '#fff') {
-    if (goalMessageTimeout) clearTimeout(goalMessageTimeout);
+  function handleWrongGoal() {
+    displayMessage("❌ Wrong!", "red");
+    setTimeout(() => window.location.reload(), 1500);
+  }
+
+  function displayMessage(text, color = "#fff") {
     info.textContent = text;
     info.style.color = color;
-    goalMessageTimeout = setTimeout(() => {
-      info.textContent = 'Swipe to kick the ball!';
-      info.style.color = '#f0f0f0';
-    }, 1500);
   }
 
-  // Main game loop
-  function gameLoop() {
-    W = canvas.width;
-    H = canvas.height;
-
-    ctx.clearRect(0, 0, W, H);
-
-  drawField();
-    animateKeepers();
-    drawBall();
-    moveBall();
-    checkGoal();
-
-    requestAnimationFrame(gameLoop);
+  function showAnswer(answer) {
+    answerDisplay.textContent = answer;
+    answerDisplay.style.display = 'block';
   }
 
-  gameLoop();
-
-  // Swipe handling logic
-  function handleSwipeStart(x, y) {
-    swipeStart = { x, y };
-    lastTouch = Date.now();
+  function speakText(text) {
+    if ('speechSynthesis' in window) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ta-IN'; // Tamil accent if applicable
+      utter.rate = 1;
+      utter.pitch = 1;
+      window.speechSynthesis.speak(utter);
+    }
   }
 
+  function resetBall() {
+    W = canvas.width; H = canvas.height;
+    ball.x = W / 2; ball.y = H / 2; ball.vx = 0; ball.vy = 0; ball.moving = false;
+    updateKeepersPosition();
+    correctGoal = Math.random() < 0.5 ? 'top' : 'bottom';
+  }
+
+  // ---------------- SWIPE CONTROL ----------------
+  let swipeStart = null, lastTouch = null;
+  function handleSwipeStart(x, y) { swipeStart = { x, y }; lastTouch = Date.now(); }
   function handleSwipeEnd(x, y) {
-    swipeEnd = { x, y };
-    if (swipeStart && !ball.moving && (Date.now() - lastTouch < 800)) {
-      const dx = swipeEnd.x - swipeStart.x;
-      const dy = swipeEnd.y - swipeStart.y;
-
-      // Velocity limits for control
+    if (!swipeStart || ball.moving) return;
+    const dx = x - swipeStart.x;
+    const dy = y - swipeStart.y;
+    if (Date.now() - lastTouch < 800) {
       ball.vx = Math.max(Math.min(dx / 12, 20), -20);
       ball.vy = Math.max(Math.min(dy / 12, 20), -20);
       ball.moving = true;
@@ -434,15 +328,8 @@
     swipeStart = null;
   }
 
-  // Mouse event listeners
-  canvas.addEventListener('mousedown', e => {
-    handleSwipeStart(e.offsetX, e.offsetY);
-  });
-  canvas.addEventListener('mouseup', e => {
-    handleSwipeEnd(e.offsetX, e.offsetY);
-  });
-
-  // Touch event listeners
+  canvas.addEventListener('mousedown', e => handleSwipeStart(e.offsetX, e.offsetY));
+  canvas.addEventListener('mouseup', e => handleSwipeEnd(e.offsetX, e.offsetY));
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
@@ -456,15 +343,20 @@
     handleSwipeEnd(t.clientX - rect.left, t.clientY - rect.top);
   }, { passive: false });
 
-  // Reset scores with 'r' key
-  window.addEventListener('keydown', e => {
-    if (e.key === 'r' || e.key === 'R') {
-      // Scores are removed; just reset ball and show a message
-      resetBall();
-      info.textContent = 'Game reset. Swipe to kick the ball!';
-      info.style.color = '#f0f0f0';
-    }
-  });
+  // ---------------- MAIN LOOP ----------------
+  function gameLoop() {
+    ctx.clearRect(0, 0, W, H);
+    drawField();
+    animateKeepers();
+    drawBall();
+    moveBall();
+    checkGoal();
+    requestAnimationFrame(gameLoop);
+  }
+
+  await loadRandomQuestion();
+  updateKeepersPosition();
+  gameLoop();
 })();
 </script>
 </body>

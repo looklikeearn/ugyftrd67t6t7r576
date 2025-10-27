@@ -1,287 +1,326 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upload Movie</title>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-  
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Excel → Firestore Uploader</title>
   <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(45deg, #36d1dc, #5b86e5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-
-    .container {
-      background-color: #ffffff;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      width: 400px;
-      text-align: center;
-    }
-
-    h2 {
-      margin-bottom: 20px;
-      color: #333;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 6px;
-      border: 1px solid #ddd;
-      font-size: 16px;
-      background-color: #f9f9f9;
-      transition: 0.3s;
-    }
-
-    input[type="file"]:hover, select:hover, textarea:hover {
-      background-color: #e1e1e1;
-    }
-
-    button {
-      width: 100%;
-      padding: 14px;
-      background-color: #5b86e5;
-      color: white;
-      border: none;
-      font-size: 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    button:hover {
-      background-color: #36d1dc;
-    }
-
-    .error-message, .success-message {
-      margin-top: 10px;
-      font-size: 14px;
-    }
-
-    .error-message {
-      color: red;
-    }
-
-    .success-message {
-      color: green;
-    }
-
-    .progress-bar-container {
-      width: 100%;
-      height: 20px;
-      background-color: #e1e1e1;
-      border-radius: 10px;
-      margin: 10px 0;
-      display: none; /* Hidden by default */
-    }
-
-    .progress-bar {
-      height: 100%;
-      width: 0%;
-      background-color: #5b86e5;
-      border-radius: 10px;
-    }
+    :root{--bg:#f6f8fb;--card:#fff;--accent:#2b6cb0;--muted:#6b7280}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:20px;background:var(--bg);color:#111}
+    .container{max-width:980px;margin:0 auto}
+    .card{background:var(--card);padding:18px;border-radius:12px;box-shadow:0 6px 20px rgba(16,24,40,0.06);margin-bottom:16px}
+    h1{margin:0 0 8px;font-size:20px}
+    p.lead{margin:0 0 12px;color:var(--muted)}
+    input[type=file]{display:block;margin:12px 0}
+    select,input[type=text]{padding:8px;border-radius:8px;border:1px solid #e6e9ef}
+    button{background:var(--accent);color:#fff;padding:10px 14px;border-radius:10px;border:0;cursor:pointer}
+    .row{display:flex;gap:12px;align-items:center;margin:10px 0}
+    .preview{max-height:220px;overflow:auto;border-radius:8px;border:1px solid #e6e9ef;padding:8px;background:#fff}
+    table{border-collapse:collapse;width:100%}
+    th,td{border:1px solid #eef2f7;padding:6px;text-align:left;font-size:13px}
+    .muted{color:var(--muted);font-size:13px}
+    .progress{margin-top:10px}
+    .log{white-space:pre-wrap;background:#0f1724;color:#e6f0ff;padding:10px;border-radius:8px;margin-top:8px;font-family:monospace;font-size:13px}
+    .small{font-size:13px;color:var(--muted)}
+    footer.small{margin-top:12px;color:var(--muted)}
   </style>
+  <!-- SheetJS (xlsx) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
-
 <body>
   <div class="container">
-    <h2>Upload Movie</h2>
+    <div class="card">
+      <h1>Excel → Firestore uploader</h1>
+      <p class="lead">Upload an Excel file and send rows into Firestore under <code>levels/{levelName}/</code>. Replace the firebaseConfig inside the script before uploading.</p>
 
-    <form id="uploadForm">
-      <input type="text" id="title" placeholder="Enter Movie Title" required><br>
-      <textarea id="description" placeholder="Enter Description" rows="4" required></textarea><br>
-      
-      <input type="text" id="tags" placeholder="Enter Tags (comma separated)" required><br>
+      <label><strong>Choose Excel file (.xls / .xlsx)</strong></label>
+      <input id="fileInput" type="file" accept=".xlsx,.xls" />
 
-      <select id="category" required>
-        <option value="" disabled selected>Select Category</option>
-        <option value="movie">Movie</option>
-        <option value="series">Series</option>
-        <option value="episode">Episode</option>
-        <option value="comedy">Comedy</option>
-        <option value="drama">Drama</option>
-        <option value="action">Action</option>
-        <option value="adventure">Adventure</option>
-        <option value="horror">Horror</option>
-        <option value="sci-fi">Sci-Fi</option>
-        <option value="romance">Romance</option>
-        <option value="fantasy">Fantasy</option>
-        <option value="thriller">Thriller</option>
-        <option value="mystery">Mystery</option>
-        <option value="documentary">Documentary</option>
-        <option value="animation">Animation</option>
-        <option value="biography">Biography</option>
-        <option value="crime">Crime</option>
-        <option value="family">Family</option>
-        <option value="music">Music</option>
-        <option value="history">History</option>
-        <option value="war">War</option>
-        <option value="western">Western</option>
-        <option value="reality">Reality</option>
-        <option value="talk-show">Talk Show</option>
-        <option value="sport">Sport</option>
-        <option value="musical">Musical</option>
-        <option value="superhero">Superhero</option>
-      </select><br>
+      <div id="sheetBlock" style="display:none">
+        <div class="row">
+          <div>
+            <label class="small">Sheet</label><br />
+            <select id="sheetSelect"></select>
+          </div>
 
-      <select id="age-restriction" required>
-        <option value="" disabled selected>Select Age Restriction</option>
-        <option value="G">G - General Audiences (All Ages)</option>
-        <option value="PG">PG - Parental Guidance (Ages 5 and Up)</option>
-        <option value="PG-13">PG-13 - Parents Strongly Cautioned (Ages 13 and Up)</option>
-        <option value="R">R - Restricted (Ages 17 and Up)</option>
-        <option value="NC-17">NC-17 - No One 17 and Under Admitted (Ages 18 and Up)</option>
-        <option value="18+">18+ - Adults Only (Ages 18 and Up)</option>
-      </select><br>
-      
-      <input type="file" id="video-file" accept="video/*"><br>
-      <input type="file" id="thumbnail" accept="image/*" required><br>
-      <input type="file" id="promo-video" accept="video/*"><br>
+          <div>
+            <label class="small">Level column (auto-detected)</label><br />
+            <select id="levelColumnSelect"></select>
+          </div>
 
-      <button type="submit">Upload Movie</button>
-    </form>
+          <div>
+            <label class="small">Or force single level</label><br />
+            <select id="forceLevelSelect">
+              <option value="">— use per-row column —</option>
+              <option value="easy">easy</option>
+              <option value="medium">medium</option>
+              <option value="hard">hard</option>
+              <option value="unknown">unknown</option>
+            </select>
+          </div>
+        </div>
 
-    <div class="error-message" id="error-message"></div>
-    <div class="success-message" id="success-message"></div>
+        <div class="row">
+          <button id="previewBtn">Preview sheet</button>
+          <button id="uploadBtn">Upload to Firestore</button>
+        </div>
 
-    <!-- Progress Bar -->
-    <div class="progress-bar-container" id="progress-bar-container">
-      <div class="progress-bar" id="progress-bar"></div>
+        <div id="preview" class="preview" style="display:none"></div>
+
+        <div class="progress">
+          <div class="small">Progress:</div>
+          <div id="progressText" class="muted small">Idle</div>
+          <div id="log" class="log" style="display:none"></div>
+        </div>
+      </div>
+
+      <footer class="small">
+        Note: Firestore write batch limit is 500 writes per batch; this uploader commits in chunks automatically.
+      </footer>
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-
-    // Firebase Configuration
+  <script>
+    // ---------- CONFIG ----------
+    // Replace with your own Firebase project configuration
     const firebaseConfig = {
-      apiKey: "AIzaSyDebZ98GjmX8gxYC4jI_gmiChm7TzFqsMg",
-      authDomain: "test-d6f13.firebaseapp.com",
-      projectId: "test-d6f13",
-      storageBucket: "test-d6f13.appspot.com",
-      messagingSenderId: "1043978393185",
-      appId: "1:1043978393185:web:a40e50c013d7869b8cfc20",
-      measurementId: "G-VLTFR2GXGS"
-    };
+      apiKey: "AIzaSyAPrVzvydC3GuoMe_ztdOi0CBhvg-Cckxw",
+  authDomain: "crobot-tech.firebaseapp.com",
+  projectId: "crobot-tech",
+  storageBucket: "crobot-tech.firebasestorage.app",
+  messagingSenderId: "913013774056",
+  appId: "1:913013774056:web:b00707f1d9c5f357389b5d",
+  measurementId: "G-CVWVFJ9JHX"};
+    // ----------------------------
 
-    const app = initializeApp(firebaseConfig);
-    const storage = getStorage(app);
-    const firestore = getFirestore(app);
+    // Initialize Firebase / Firestore (compat)
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-    const uploadForm = document.getElementById("uploadForm");
-    const errorMessage = document.getElementById("error-message");
-    const successMessage = document.getElementById("success-message");
-    const progressBarContainer = document.getElementById("progress-bar-container");
-    const progressBar = document.getElementById("progress-bar");
+    // DOM
+    const fileInput = document.getElementById('fileInput');
+    const sheetSelect = document.getElementById('sheetSelect');
+    const levelColumnSelect = document.getElementById('levelColumnSelect');
+    const forceLevelSelect = document.getElementById('forceLevelSelect');
+    const preview = document.getElementById('preview');
+    const previewBtn = document.getElementById('previewBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const sheetBlock = document.getElementById('sheetBlock');
+    const progressText = document.getElementById('progressText');
+    const logEl = document.getElementById('log');
 
-    uploadForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      errorMessage.textContent = "";
-      successMessage.textContent = "";
-      progressBarContainer.style.display = "block";  // Show progress bar
+    let workbook = null;
+    let sheetJsonByName = {}; // sheetName -> array of objects (rows)
+    let lastHeaders = [];
 
-      const title = document.getElementById("title").value;
-      const description = document.getElementById("description").value;
-      const tags = document.getElementById("tags").value;
-      const category = document.getElementById("category").value;
-      const ageRestriction = document.getElementById("age-restriction").value;
-
-      const videoFile = document.getElementById("video-file").files[0];
-      const thumbnailFile = document.getElementById("thumbnail").files[0];
-      const promoVideoFile = document.getElementById("promo-video").files[0];
-
-      if (category === "series" && videoFile) {
-        errorMessage.textContent = "Series cannot have video files. Please upload a video for movies or episodes.";
-        return;
+    function log(msg, show=true){
+      console.log(msg);
+      if(show){
+        logEl.style.display = 'block';
+        logEl.textContent += msg + "\\n";
+        logEl.scrollTop = logEl.scrollHeight;
       }
+    }
 
-      if (!thumbnailFile) {
-        errorMessage.textContent = "Thumbnail is required.";
-        return;
-      }
-
+    fileInput.addEventListener('change', async (e) => {
+      const f = e.target.files[0];
+      if(!f) return;
       try {
-        // Upload thumbnail file to Firebase Storage
-        const thumbnailRef = ref(storage, `thumbnails/${title}.jpg`);
-        const uploadThumbnailTask = uploadBytesResumable(thumbnailRef, thumbnailFile);
-
-        // Track upload progress for thumbnail
-        uploadThumbnailTask.on("state_changed", (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          progressBar.style.width = progress + "%";
+        const data = await f.arrayBuffer();
+        workbook = XLSX.read(data, {type:'array'});
+        // populate sheets
+        sheetSelect.innerHTML = '';
+        workbook.SheetNames.forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name; opt.textContent = name;
+          sheetSelect.appendChild(opt);
         });
 
-        await uploadThumbnailTask;
-        const thumbnailURL = await getDownloadURL(thumbnailRef);
+        // parse each sheet to json (with header row detection)
+        sheetJsonByName = {};
+        workbook.SheetNames.forEach(name => {
+          const ws = workbook.Sheets[name];
+          // parse as array of objects using the first row as headers
+          const arr = XLSX.utils.sheet_to_json(ws, {defval: ""});
+          sheetJsonByName[name] = arr;
+        });
 
-        let videoURL = null;
-        if (category !== "series" && videoFile) {
-          // Upload video file if it's not a series
-          const videoRef = ref(storage, `videos/${title}.mp4`);
-          const uploadVideoTask = uploadBytesResumable(videoRef, videoFile);
-
-          // Track upload progress for video
-          uploadVideoTask.on("state_changed", (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            progressBar.style.width = progress + "%";
-          });
-
-          await uploadVideoTask;
-          videoURL = await getDownloadURL(videoRef);
-        }
-
-        let promoVideoURL = null;
-        if (promoVideoFile) {
-          // Upload promo video file if provided
-          const promoRef = ref(storage, `promos/${title}_promo.mp4`);
-          const uploadPromoTask = uploadBytesResumable(promoRef, promoVideoFile);
-
-          // Track upload progress for promo video
-          uploadPromoTask.on("state_changed", (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            progressBar.style.width = progress + "%";
-          });
-
-          await uploadPromoTask;
-          promoVideoURL = await getDownloadURL(promoRef);
-        }
-
-        // Save movie metadata to Firestore
-        const movieData = {
-          title,
-          description,
-          tags: tags.split(",").map(tag => tag.trim()),
-          category,
-          ageRestriction,
-          videoURL,
-          thumbnailURL,
-          promoVideoURL: promoVideoURL || null,
-          timestamp: new Date(),
-        };
-
-        await setDoc(doc(firestore, "movies", title), movieData);
-
-        successMessage.textContent = "Movie uploaded successfully!";
-        uploadForm.reset();
-        progressBarContainer.style.display = "none";  // Hide progress bar
-      } catch (error) {
-        console.error("Error uploading movie:", error);
-        errorMessage.textContent = "An error occurred while uploading. Please try again.";
+        sheetBlock.style.display = 'block';
+        populateLevelColumnSelect(); // try auto-detect
+        preview.style.display = 'none';
+        logEl.textContent = '';
+        logEl.style.display = 'none';
+        progressText.textContent = 'File loaded: ' + f.name;
+      } catch(err){
+        alert('Error reading file: ' + err.message);
+        console.error(err);
       }
     });
+
+    function populateLevelColumnSelect(){
+      const name = sheetSelect.value || workbook.SheetNames[0];
+      const arr = sheetJsonByName[name] || [];
+      levelColumnSelect.innerHTML = '';
+      if(arr.length === 0){
+        const opt = document.createElement('option'); opt.textContent = 'No rows'; opt.value = '';
+        levelColumnSelect.appendChild(opt);
+        return;
+      }
+      const headers = Object.keys(arr[0]);
+      lastHeaders = headers;
+      // add options
+      headers.forEach(h => {
+        const opt = document.createElement('option'); opt.value = h; opt.textContent = h;
+        levelColumnSelect.appendChild(opt);
+      });
+      // try to detect
+      const candidates = ['level','difficulty','levels','tier'];
+      const detected = headers.find(h => candidates.includes(h.toLowerCase()));
+      if(detected){
+        levelColumnSelect.value = detected;
+      }
+    }
+
+    sheetSelect.addEventListener('change', () => {
+      populateLevelColumnSelect();
+      preview.style.display = 'none';
+    });
+
+    previewBtn.addEventListener('click', () => {
+      const name = sheetSelect.value || workbook.SheetNames[0];
+      const arr = sheetJsonByName[name] || [];
+      if(arr.length === 0){ preview.innerHTML = '<div class="small">No data found in sheet</div>'; preview.style.display='block'; return; }
+      // preview first 10 rows
+      const headers = Object.keys(arr[0]);
+      let html = '<table><thead><tr>';
+      headers.forEach(h => html += `<th>${escapeHtml(h)}</th>`);
+      html += '</tr></thead><tbody>';
+      arr.slice(0, 20).forEach(row => {
+        html += '<tr>';
+        headers.forEach(h => html += `<td>${escapeHtml(String(row[h] ?? ''))}</td>`);
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      html += `<div class="small muted">Showing first ${Math.min(20,arr.length)} rows (total ${arr.length})</div>`;
+      preview.innerHTML = html;
+      preview.style.display = 'block';
+    });
+
+    uploadBtn.addEventListener('click', async () => {
+      if(!workbook){ alert('Pick an Excel file first'); return; }
+      const sheetName = sheetSelect.value || workbook.SheetNames[0];
+      const arr = sheetJsonByName[sheetName] || [];
+      if(arr.length === 0){ alert('No rows to upload'); return; }
+
+      // determine level strategy
+      const forced = forceLevelSelect.value;
+      const useForced = forced && forced.length > 0;
+      const levelColumn = levelColumnSelect.value;
+      if(!useForced && !levelColumn){
+        alert('Select a level column or choose a forced single level');
+        return;
+      }
+
+      // prepare grouping by level
+      const grouped = {}; // levelName -> array of row objects
+      arr.forEach((row, idx) => {
+        let levelVal = 'unknown';
+        if(useForced){
+          levelVal = forced;
+        } else {
+          // read level column value
+          const v = row[levelColumn];
+          levelVal = (v === undefined || v === null || String(v).trim() === '') ? 'unknown' : String(v).trim();
+        }
+        // normalize some common values
+        const norm = levelVal.toLowerCase();
+        if(['easy','e'].includes(norm)) levelVal = 'easy';
+        else if(['medium','med','m'].includes(norm)) levelVal = 'medium';
+        else if(['hard','h'].includes(norm)) levelVal = 'hard';
+        // else keep original trimmed string (e.g., "Level 1")
+        if(!grouped[levelVal]) grouped[levelVal] = [];
+        grouped[levelVal].push({__rowIndex: idx+1, ...row});
+      });
+
+      // start uploading: for each level create collection 'levels/<levelVal>/'
+      progressText.textContent = 'Preparing uploads...';
+      logEl.textContent = '';
+      logEl.style.display = 'block';
+      const maxBatch = 400; // safe lower than 500
+      let total = 0;
+      let uploadedCount = 0;
+
+      try {
+        for(const levelName of Object.keys(grouped)){
+          const rows = grouped[levelName];
+          total += rows.length;
+        }
+        log(`Total documents to upload: ${total}`);
+
+        // iterate levels and upload in batches
+        let globalCount = 0;
+        for(const levelName of Object.keys(grouped)){
+          const rows = grouped[levelName];
+          log(`\\nUploading ${rows.length} rows to levels/${levelName}/ ...`);
+          // chunk rows
+          for(let i=0;i<rows.length;i+=maxBatch){
+            const chunk = rows.slice(i,i+maxBatch);
+            const batch = db.batch();
+            chunk.forEach(r => {
+              // create a new doc reference in collection levels/{levelName}
+              const docRef = db.collection('levels').doc(levelName).collection(levelName).doc(); // levels/<levelName>/<levelName> collection
+              // prepare data: clone row and remove undefined keys
+              const data = {};
+              Object.keys(r).forEach(k => {
+                if(k === '__rowIndex') return; // optional metadata
+                let v = r[k];
+                // try to keep numbers as numbers
+                if(typeof v === 'string'){
+                  // try number conversion if looks numeric
+                  const num = Number(v);
+                  if(v.trim() !== '' && !isNaN(num)) v = num;
+                }
+                data[k] = v;
+              });
+              // optional: add metadata about original row
+              data.__uploaded_at = new Date();
+              data.__source_sheet = sheetName;
+              // commit
+              batch.set(docRef, data);
+            });
+            // commit batch
+            progressText.textContent = `Uploading ${Math.min(globalCount+chunk.length,total)}/${total}...`;
+            await batch.commit();
+            uploadedCount += chunk.length;
+            globalCount += chunk.length;
+            log(`Committed batch: +${chunk.length} docs (total uploaded: ${uploadedCount})`);
+          }
+        }
+
+        progressText.textContent = `Upload complete: ${uploadedCount}/${total} documents uploaded.`;
+        alert(`Upload finished: ${uploadedCount} documents uploaded.`);
+      } catch(err){
+        console.error(err);
+        log('ERROR: ' + err.message);
+        progressText.textContent = 'Error during upload. See log.';
+        alert('Upload error: ' + err.message);
+      }
+    });
+
+    // Simple helper to escape HTML in preview
+    function escapeHtml(s){
+      return (s+'').replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});
+    }
+
+    // small improvement: when user changes force-level selection, disable level column if forced
+    forceLevelSelect.addEventListener('change', () => {
+      if(forceLevelSelect.value) levelColumnSelect.disabled = true;
+      else levelColumnSelect.disabled = false;
+    });
+
   </script>
 </body>
 </html>

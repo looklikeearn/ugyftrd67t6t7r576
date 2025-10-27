@@ -2,28 +2,34 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Basketball Game</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
 <style>
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  background: #6100fd;
-  overflow-x: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, #3b00ff 0%, #1b0033 100%);
+  touch-action: none;
 }
+
 canvas {
   display: block;
   margin: 0 auto;
-  background: #5f08ff;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, #5f08ff 0%, #2a007c 100%);
   box-shadow: 0 0 24px rgba(71, 4, 255, 0.667);
 }
+
 .info {
   position: absolute;
   top: 10px;
@@ -31,67 +37,141 @@ canvas {
   transform: translateX(-50%);
   color: rgb(255, 231, 13);
   font-family: Arial, sans-serif;
-  font-size: 20px;
+  font-size: min(20px, 5vw);
   z-index: 2;
   text-align: center;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.9),
                0 0 20px rgba(255, 255, 255, 0.8),
                0 0 30px rgba(255, 255, 255, 0.6);
 }
+
+/* Center result text */
+#centerText {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: Arial, sans-serif;
+  font-size: 8vw;
+  font-weight: bold;
+  text-align: center;
+  text-shadow: 0 0 10px #fff, 0 0 20px #fff;
+  z-index: 3;
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
-<canvas id="gameCanvas" width="400" height="600"></canvas>
-<div class="info" id="info">Swipe to Shoot!</div>
+<canvas id="gameCanvas"></canvas>
+<div class="info" id="info">🏀</div>
+<div id="centerText"></div>
 
 <script>
+/* ---------------- Firebase Setup ---------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyAPrVzvydC3GuoMe_ztdOi0CBhvg-Cckxw",
+  authDomain: "crobot-tech.firebaseapp.com",
+  projectId: "crobot-tech",
+  storageBucket: "crobot-tech.firebasestorage.app",
+  messagingSenderId: "913013774056",
+  appId: "1:913013774056:web:b00707f1d9c5f357389b5d",
+  measurementId: "G-CVWVFJ9JHX"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* ---------------- Canvas Setup ---------------- */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const W = canvas.width;
-const H = canvas.height;
 const info = document.getElementById('info');
-const leftSideImg = new Image();
-leftSideImg.src = "audience_left.jpg"; // 👈 your custom left side image
+const centerText = document.getElementById('centerText');
 
-const rightSideImg = new Image();
-rightSideImg.src = "audience_right.jpg"; 
+let W, H;
+function resizeCanvas() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
 const ballImg = new Image();
 ballImg.src = "basket.png";
+
 const hoopImg = new Image();
 hoopImg.src = "hoop.png";
 
+/* ---------------- Game Variables ---------------- */
 const ball = { 
-  w: 160, 
-  h: 160, 
-  x: W/2 - 80, 
-  y: H - 140, 
-  baseY: H - 140, 
-  speedY: 6, 
+  w: W * 0.25, 
+  h: W * 0.25, 
+  x: W / 2 - (W * 0.125), 
+  y: H * 0.8, 
+  baseY: H * 0.8, 
   moving: false, 
   target: null, 
   bounceDir: 1, 
-  bounceRange: 20 
+  bounceRange: 20, 
+  stuck: false
 };
 
-const hoops = [
-  { x: 30, y: 80, w: 150, h: 150 },
-  { x: 240, y: 80, w: 150, h: 150 }
-];
-
-let gameOver = false;
+let hoops = [];
 let glowPhase = 0;
+let gameOver = false;
 
+let currentQuestion = "";
+let correctAnswer = "";
+let wrongAnswer = "";
+
+/* ---------------- Load Question from Firestore ---------------- */
+async function loadRandomQuestion() {
+  try {
+    const snapshot = await db.collection("levels").doc("medium").collection("medium").get();
+    if (!snapshot.empty) {
+      const docs = snapshot.docs;
+      const randomDoc = docs[Math.floor(Math.random() * docs.length)];
+      const data = randomDoc.data();
+
+      currentQuestion = data.Question || "Game starting!";
+      correctAnswer = data["Correct Answer"] || "Correct";
+      wrongAnswer = data["Wrong Answer"] || "Wrong";
+      updateHoops();
+    }
+  } catch (err) {
+    console.error("Error loading question:", err);
+    currentQuestion = "⚠️ Failed to load question!";
+  }
+}
+
+/* ---------------- Setup Hoops ---------------- */
+function setupHoops() {
+  const hoopSize = Math.min(W * 0.35, 150);
+  const hoopY = H * 0.15;
+  const gap = W * 0.1;
+  const startX = (W - (2 * hoopSize + gap)) / 2;
+  hoops = [
+    { x: startX, y: hoopY, w: hoopSize, h: hoopSize, answer: "" },
+    { x: startX + hoopSize + gap, y: hoopY, w: hoopSize, h: hoopSize, answer: "" }
+  ];
+}
+setupHoops();
+window.addEventListener('resize', setupHoops);
+
+/* ---------------- Assign Answers ---------------- */
+function updateHoops() {
+  const correctIndex = Math.random() < 0.5 ? 0 : 1;
+  hoops[correctIndex].answer = correctAnswer;
+  hoops[1 - correctIndex].answer = wrongAnswer;
+  gameOver = false;
+  ball.stuck = false;
+  ball.x = W / 2 - ball.w / 2;
+  ball.y = ball.baseY;
+  centerText.textContent = "";
+}
+
+/* ---------------- Drawing ---------------- */
 function drawBackground() {
-  ctx.fillStyle = '#444';
-  ctx.fillRect(0,0,W,H);
-
-  // Draw left side image
-  if (leftSideImg.complete) ctx.drawImage(leftSideImg, 0, 0, 100, H);
-  
-  // Draw right side image
-  if (rightSideImg.complete) ctx.drawImage(rightSideImg, W - 100, 0, 100, H);
-
   glowPhase += 0.05;
   const glow = Math.sin(glowPhase) * 0.5 + 0.5;
 
@@ -101,54 +181,82 @@ function drawBackground() {
     if (hoopImg.complete) ctx.drawImage(hoopImg, h.x, h.y, h.w, h.h);
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#fff';
-    ctx.font = '14px Arial';
-    ctx.fillText('Answer', h.x, h.y - 6);
+    ctx.font = `${Math.min(18, W * 0.045)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText(h.answer, h.x + h.w / 2, h.y - 10);
   });
+
+  // Draw the question near the ball (bottom)
+  ctx.fillStyle = 'rgb(255, 231, 13)';
+  ctx.font = `${Math.min(22, W * 0.05)}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  wrapText(ctx, currentQuestion, W / 2, H * 0.55, W * 0.85, 30);
 }
 
 function drawBall() {
   if (ballImg.complete) ctx.drawImage(ballImg, ball.x, ball.y, ball.w, ball.h);
 }
 
+/* ---------------- Ball Animation ---------------- */
 function bounceBall() {
+  if (ball.stuck) return;
   ball.y += ball.bounceDir * 0.7;
-  if (ball.y > ball.baseY + ball.bounceRange || ball.y < ball.baseY - ball.bounceRange) {
+  if (ball.y > ball.baseY + ball.bounceRange || ball.y < ball.baseY - ball.bounceRange)
     ball.bounceDir *= -1;
-  }
 }
 
 function moveBall() {
-  if (!ball.target) return;
-  const targetX = ball.target.x + ball.target.w/2 - ball.w/2;
-  const targetY = ball.target.y + ball.target.h/2 - ball.h/2;
+  if (!ball.target || ball.stuck) return;
+  const targetX = ball.target.x + ball.target.w / 2 - ball.w / 2;
+  const targetY = ball.target.y + ball.target.h / 2 - ball.h / 2;
 
   ball.x += (targetX - ball.x) * 0.1;
   ball.y += (targetY - ball.y) * 0.05;
 
   if (Math.abs(ball.x - targetX) < 2 && Math.abs(ball.y - targetY) < 2) {
     ball.moving = false;
-    decideResult();
+    decideResult(ball.target.answer);
   }
 }
 
-function decideResult() {
+/* ---------------- Result Logic ---------------- */
+function speakText(text) {
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US'; // English
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
+function showCenterText(text, color = '#00ff00', size = 8) {
+  centerText.textContent = text;
+  centerText.style.color = color;
+  centerText.style.fontSize = size + 'vw';
+  centerText.style.textShadow = `0 0 20px ${color}, 0 0 40px ${color}`;
+}
+
+function decideResult(answer) {
   gameOver = true;
-  const isWin = Math.random() < 0.5;
-  if (isWin) {
-    info.textContent = "🏆🏆🏆🏆🏆🏆🏆🏆";
-    setTimeout(() => window.location.href = "crack.html", 1500);
+  ball.stuck = true;
+  if (answer === correctAnswer) {
+    // Show the correct answer in center and speak it
+    showCenterText(` ${correctAnswer} `, '#00ff44', 8);
+    speakText(correctAnswer);
+    setTimeout(() => window.location.href = "crack.html", 2000);
   } else {
-    info.textContent = "❌❌❌❌❌❌❌ ";
-    setTimeout(() => window.location.reload(), 2000);
+    // Wrong answer: do not show or speak anything, just reload question
+    setTimeout(() => loadRandomQuestion(), 2500);
   }
 }
 
+
+/* ---------------- Input Handling ---------------- */
 function handleClickOrSwipe(x) {
   if (ball.moving || gameOver) return;
-  if (x < W/2) ball.target = hoops[0];
-  else ball.target = hoops[1];
+  ball.target = x < W / 2 ? hoops[0] : hoops[1];
   ball.moving = true;
-  info.textContent = "🏀 Shooting!";
+  info.textContent = "🏀🏀🏀🏀🏀";
 }
 
 canvas.addEventListener('click', e => {
@@ -157,24 +265,42 @@ canvas.addEventListener('click', e => {
 });
 
 let touchStartX = 0;
-canvas.addEventListener('touchstart', e => {
-  touchStartX = e.touches[0].clientX;
-});
+canvas.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
 canvas.addEventListener('touchend', e => {
   const touchEndX = e.changedTouches[0].clientX;
-  if (touchEndX < touchStartX) handleClickOrSwipe(0);
-  else handleClickOrSwipe(W);
+  handleClickOrSwipe(touchEndX < touchStartX ? 0 : W);
 });
 
+/* ---------------- Word Wrap Helper ---------------- */
+function wrapText(context, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + ' ';
+    const metrics = context.measureText(testLine);
+    if (metrics.width > maxWidth && n > 0) {
+      context.fillText(line, x, y);
+      line = words[n] + ' ';
+      y += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  context.fillText(line, x, y);
+}
+
+/* ---------------- Game Loop ---------------- */
 function gameLoop() {
-  ctx.clearRect(0,0,W,H);
+  ctx.clearRect(0, 0, W, H);
   drawBackground();
   if (!ball.moving) bounceBall();
-  if (ball.moving) moveBall();
+  else moveBall();
   drawBall();
   requestAnimationFrame(gameLoop);
 }
 
+/* ---------------- Start Game ---------------- */
+loadRandomQuestion();
 gameLoop();
 </script>
 </body>
