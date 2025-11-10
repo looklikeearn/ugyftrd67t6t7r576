@@ -1,150 +1,102 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>ESP32 IoT Control</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IoT Control Panel</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f4f6f8;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 { color: #333; }
-    .card {
-      background: #fff;
-      padding: 20px;
-      margin: 15px auto;
-      border-radius: 10px;
-      width: 320px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 10px;
-      transition: 0.2s;
-    }
-    .on {
-      background: #4CAF50;
-      color: white;
-    }
-    .off {
-      background: #f44336;
-      color: white;
-    }
-    #distance {
-      font-size: 26px;
-      font-weight: bold;
-      color: #222;
-      margin-top: 10px;
-    }
-    #status {
-      font-weight: bold;
-      margin-top: 10px;
-    }
+    body { font-family: Arial; text-align: center; background: #f0f0f0; padding: 20px; }
+    .card { background: white; padding: 20px; margin: 20px auto; border-radius: 10px; width: 300px; box-shadow: 0 0 10px #ccc; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; border: none; border-radius: 5px; }
+    .on { background: #4CAF50; color: white; }
+    .off { background: #f44336; color: white; }
+    #distance { font-size: 24px; font-weight: bold; margin-top: 10px; }
+    #status { margin-top: 15px; font-weight: bold; }
   </style>
 </head>
 <body>
   <h1>ESP32 IoT Control</h1>
 
   <div class="card">
-    <h2>Bulb Control</h2>
+    <h2>Bulb</h2>
     <button id="bulbBtn" class="off">Turn ON</button>
   </div>
 
   <div class="card">
-    <h2>Fan Control</h2>
+    <h2>Fan</h2>
     <button id="fanBtn" class="off">Turn ON</button>
   </div>
 
   <div class="card">
-    <h2>Ultrasonic Distance</h2>
+    <h2>Distance</h2>
     <div id="distance">-- cm</div>
   </div>
 
   <div class="card">
-    <h2>ESP32 Status</h2>
+    <h2>Status</h2>
     <div id="status">Checking...</div>
   </div>
 
-  <script>
-    const ESP32_IP = "http://192.168.241.138"; // use same IP as host
+<script>
+  const ESP32_IP = window.location.origin;
 
-    const bulbBtn = document.getElementById("bulbBtn");
-    const fanBtn = document.getElementById("fanBtn");
-    const distanceDisplay = document.getElementById("distance");
-    const statusDisplay = document.getElementById("status");
+  const bulbBtn = document.getElementById("bulbBtn");
+  const fanBtn = document.getElementById("fanBtn");
+  const distanceDisplay = document.getElementById("distance");
+  const statusDisplay = document.getElementById("status");
 
-    // Toggle Bulb
-    bulbBtn.onclick = () => {
-      const state = bulbBtn.classList.contains("on") ? "off" : "on";
-      fetch(`${ESP32_IP}/bulb?state=${state}`)
-        .then(() => updateButton(bulbBtn, state))
-        .catch(() => showError());
-    };
+  bulbBtn.onclick = () => {
+    const state = bulbBtn.classList.contains("on") ? "off" : "on";
+    fetch(`${ESP32_IP}/bulb?state=${state}`);
+    updateButton(bulbBtn, state);
+  };
 
-    // Toggle Fan
-    fanBtn.onclick = () => {
-      const state = fanBtn.classList.contains("on") ? "off" : "on";
-      fetch(`${ESP32_IP}/fan?state=${state}`)
-        .then(() => updateButton(fanBtn, state))
-        .catch(() => showError());
-    };
+  fanBtn.onclick = () => {
+    const state = fanBtn.classList.contains("on") ? "off" : "on";
+    fetch(`${ESP32_IP}/fan?state=${state}`);
+    updateButton(fanBtn, state);
+  };
 
-    // Update button styles
-    function updateButton(button, state) {
-      if (state === "on") {
-        button.textContent = "Turn OFF";
-        button.className = "on";
-      } else {
-        button.textContent = "Turn ON";
-        button.className = "off";
-      }
+  function updateButton(button, state) {
+    if (state === "on") {
+      button.textContent = "Turn OFF";
+      button.className = "on";
+    } else {
+      button.textContent = "Turn ON";
+      button.className = "off";
     }
+  }
 
-    // Distance fetch
-    async function updateDistance() {
-      try {
-        const res = await fetch(`${ESP32_IP}/distance`);
-        if (!res.ok) throw new Error();
-        const data = await res.json();
+  function updateDistance() {
+    fetch(`${ESP32_IP}/distance`)
+      .then(res => res.json())
+      .then(data => {
         distanceDisplay.textContent = `${data.cm} cm`;
-      } catch {
+      })
+      .catch(() => {
         distanceDisplay.textContent = "-- cm";
-      }
-    }
+      });
+  }
 
-    // Connection check
-    async function checkConnection() {
-      try {
-        const res = await fetch(`${ESP32_IP}/ping`);
+  function checkConnection() {
+    fetch(`${ESP32_IP}/ping`)
+      .then(res => {
         if (res.ok) {
           statusDisplay.textContent = "Connected";
           statusDisplay.style.color = "green";
-        } else throw new Error();
-      } catch {
-        statusDisplay.textContent = "Disconnected";
+        } else {
+          throw new Error("Disconnected");
+        }
+      })
+      .catch(() => {
+        statusDisplay.textContent = "Not Connected";
         statusDisplay.style.color = "red";
-      }
-    }
+      });
+  }
 
-    // Simple error handler
-    function showError() {
-      statusDisplay.textContent = "Connection Error";
-      statusDisplay.style.color = "red";
-    }
-
-    // Run periodic updates
-    setInterval(updateDistance, 2000);
-    setInterval(checkConnection, 3000);
-    updateDistance();
-    checkConnection();
-  </script>
+  setInterval(updateDistance, 2000);
+  setInterval(checkConnection, 3000);
+  updateDistance();
+  checkConnection();
+</script>
 </body>
 </html>
