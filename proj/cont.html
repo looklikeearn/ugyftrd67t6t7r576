@@ -1,102 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>IoT Control Panel</title>
+  <meta charset="UTF-8" />
+  <title>ESP32 Fan Control</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <style>
-    body { font-family: Arial; text-align: center; background: #f0f0f0; padding: 20px; }
-    .card { background: white; padding: 20px; margin: 20px auto; border-radius: 10px; width: 300px; box-shadow: 0 0 10px #ccc; }
-    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; border: none; border-radius: 5px; }
-    .on { background: #4CAF50; color: white; }
-    .off { background: #f44336; color: white; }
-    #distance { font-size: 24px; font-weight: bold; margin-top: 10px; }
-    #status { margin-top: 15px; font-weight: bold; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 15px;
+      width: 300px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .on {
+      background: #4CAF50;
+      color: #fff;
+    }
+    .off {
+      background: #f44336;
+      color: #fff;
+    }
+    .fan-icon {
+      font-size: 80px;
+      margin: 20px;
+      color: gray;
+      transition: all 0.3s;
+    }
+    .fan-on {
+      color: #2196F3;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
+
 <body>
-  <h1>ESP32 IoT Control</h1>
-
-  <div class="card">
-    <h2>Bulb</h2>
-    <button id="bulbBtn" class="off">Turn ON</button>
-  </div>
-
+  <h1>ESP32 Fan Control Panel</h1>
   <div class="card">
     <h2>Fan</h2>
+    <i id="fanIcon" class="fas fa-fan fan-icon"></i><br>
     <button id="fanBtn" class="off">Turn ON</button>
   </div>
 
-  <div class="card">
-    <h2>Distance</h2>
-    <div id="distance">-- cm</div>
-  </div>
-
-  <div class="card">
-    <h2>Status</h2>
-    <div id="status">Checking...</div>
-  </div>
-
 <script>
-  const ESP32_IP = window.location.origin;
+  // 🔹 Replace this with your ESP32 IP
+  const ESP32_IP = "http://192.168.241.138";
 
-  const bulbBtn = document.getElementById("bulbBtn");
+  // 🔹 Firebase Config (yours)
+  const firebaseConfig = {
+    apiKey: "AIzaSyAPrVzvydC3GuoMe_ztdOi0CBhvg-Cckxw",
+    authDomain: "crobot-tech.firebaseapp.com",
+    projectId: "crobot-tech",
+    storageBucket: "crobot-tech.appspot.com",
+    messagingSenderId: "913013774056",
+    appId: "1:913013774056:web:b00707f1d9c5f357389b5d",
+    measurementId: "G-CVWVFJ9JHX"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const deviceId = "fanDevice";
+  const fanDoc = db.collection("iot_controls").doc(deviceId);
+
   const fanBtn = document.getElementById("fanBtn");
-  const distanceDisplay = document.getElementById("distance");
-  const statusDisplay = document.getElementById("status");
+  const fanIcon = document.getElementById("fanIcon");
 
-  bulbBtn.onclick = () => {
-    const state = bulbBtn.classList.contains("on") ? "off" : "on";
-    fetch(`${ESP32_IP}/bulb?state=${state}`);
-    updateButton(bulbBtn, state);
+  // Update Firestore when button clicked
+  fanBtn.onclick = async () => {
+    const isOn = fanBtn.classList.contains("on");
+    const newState = isOn ? "off" : "on";
+    try {
+      await fanDoc.set({ fanState: newState });
+      console.log("Firestore updated:", newState);
+    } catch (e) {
+      console.error("Error updating Firestore:", e);
+    }
   };
 
-  fanBtn.onclick = () => {
-    const state = fanBtn.classList.contains("on") ? "off" : "on";
-    fetch(`${ESP32_IP}/fan?state=${state}`);
-    updateButton(fanBtn, state);
-  };
+  // Listen for Firestore changes
+  fanDoc.onSnapshot(async (doc) => {
+    if (doc.exists) {
+      const data = doc.data();
+      const state = data.fanState || "off";
+      updateUI(state);
 
-  function updateButton(button, state) {
+      // 🔹 Tell ESP32 to change state
+      try {
+        const url = `${ESP32_IP}/fan?state=${state}`;
+        const response = await fetch(url, { mode: 'no-cors' });
+        console.log("Sent to ESP32:", url);
+      } catch (e) {
+        console.error("ESP32 not reachable:", e);
+      }
+    }
+  });
+
+  // Set initial UI
+  fanDoc.get().then((doc) => {
+    if (doc.exists) updateUI(doc.data().fanState || "off");
+    else updateUI("off");
+  });
+
+  function updateUI(state) {
     if (state === "on") {
-      button.textContent = "Turn OFF";
-      button.className = "on";
+      fanBtn.textContent = "Turn OFF";
+      fanBtn.className = "on";
+      fanIcon.classList.add("fan-on");
     } else {
-      button.textContent = "Turn ON";
-      button.className = "off";
+      fanBtn.textContent = "Turn ON";
+      fanBtn.className = "off";
+      fanIcon.classList.remove("fan-on");
     }
   }
-
-  function updateDistance() {
-    fetch(`${ESP32_IP}/distance`)
-      .then(res => res.json())
-      .then(data => {
-        distanceDisplay.textContent = `${data.cm} cm`;
-      })
-      .catch(() => {
-        distanceDisplay.textContent = "-- cm";
-      });
-  }
-
-  function checkConnection() {
-    fetch(`${ESP32_IP}/ping`)
-      .then(res => {
-        if (res.ok) {
-          statusDisplay.textContent = "Connected";
-          statusDisplay.style.color = "green";
-        } else {
-          throw new Error("Disconnected");
-        }
-      })
-      .catch(() => {
-        statusDisplay.textContent = "Not Connected";
-        statusDisplay.style.color = "red";
-      });
-  }
-
-  setInterval(updateDistance, 2000);
-  setInterval(checkConnection, 3000);
-  updateDistance();
-  checkConnection();
 </script>
 </body>
 </html>
