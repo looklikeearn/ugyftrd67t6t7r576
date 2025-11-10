@@ -46,12 +46,8 @@
       animation: spin 1s linear infinite;
     }
     @keyframes spin {
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
-      }
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
   </style>
 
@@ -69,70 +65,73 @@
     <button id="fanBtn" class="off">Turn ON</button>
   </div>
 
-<script>
-  const ESP32_IP = "http://192.168.241.138"; // your ESP32 IP
+  <script>
+    const ESP32_IP = "http://192.168.241.138"; // Replace with your ESP32 IP
 
-  // Firebase config - replace with your own config
-  const firebaseConfig = {
-    apiKey: "AIzaSyAPrVzvydC3GuoMe_ztdOi0CBhvg-Cckxw",
-    authDomain: "crobot-tech.firebaseapp.com",
-    projectId: "crobot-tech",
-    storageBucket: "crobot-tech.firebasestorage.app",
-    messagingSenderId: "913013774056",
-    appId: "1:913013774056:web:b00707f1d9c5f357389b5d",
-    measurementId: "G-CVWVFJ9JHX"
-  };
+    // ✅ Corrected Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAPrVzvydC3GuoMe_ztdOi0CBhvg-Cckxw",
+      authDomain: "crobot-tech.firebaseapp.com",
+      projectId: "crobot-tech",
+      storageBucket: "crobot-tech.appspot.com", // ❌ fixed incorrect domain
+      messagingSenderId: "913013774056",
+      appId: "1:913013774056:web:b00707f1d9c5f357389b5d",
+      measurementId: "G-CVWVFJ9JHX"
+    };
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+    // ✅ Initialize Firebase properly
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-  const deviceId = "fanDevice";
-  const fanDocRef = db.collection("iot_controls").doc(deviceId);
+    const deviceId = "fanDevice";
+    const fanDocRef = db.collection("iot_controls").doc(deviceId);
 
-  const fanBtn = document.getElementById("fanBtn");
-  const fanIcon = document.getElementById("fanIcon");
+    const fanBtn = document.getElementById("fanBtn");
+    const fanIcon = document.getElementById("fanIcon");
 
-  // When user clicks the button here, update Firestore only
-  fanBtn.onclick = () => {
-    const isOn = fanBtn.classList.contains("on");
-    const newState = isOn ? "off" : "on";
-    fanDocRef.set({ fanState: newState }).catch(console.error);
-  };
+    // ✅ Button click updates Firestore only
+    fanBtn.onclick = () => {
+      const isOn = fanBtn.classList.contains("on");
+      const newState = isOn ? "off" : "on";
+      fanDocRef.set({ fanState: newState })
+        .catch(err => console.error("Firestore write error:", err));
+    };
 
-  // Listen for Firestore updates and update ESP32 + UI accordingly
-  fanDocRef.onSnapshot(doc => {
-    if (doc.exists) {
-      const data = doc.data();
-      const state = data.fanState || "off";
+    // ✅ Listen to Firestore changes
+    fanDocRef.onSnapshot(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        const state = data.fanState || "off";
 
-      // Call ESP32 API to turn fan on/off
-      fetch(`${ESP32_IP}/fan?state=${state}`).catch(console.error);
+        // ✅ Send command to ESP32
+        fetch(`${ESP32_IP}/fan?state=${state}`)
+          .then(() => updateUI(state))
+          .catch(err => console.error("ESP32 fetch error:", err));
+      }
+    });
 
-      // Update UI accordingly
-      updateUI(state);
+    function updateUI(state) {
+      if (state === "on") {
+        fanBtn.textContent = "Turn OFF";
+        fanBtn.className = "on";
+        fanIcon.classList.add("fan-on");
+      } else {
+        fanBtn.textContent = "Turn ON";
+        fanBtn.className = "off";
+        fanIcon.classList.remove("fan-on");
+      }
     }
-  });
 
-  function updateUI(state) {
-    if (state === "on") {
-      fanBtn.textContent = "Turn OFF";
-      fanBtn.className = "on";
-      fanIcon.classList.add("fan-on");
-    } else {
-      fanBtn.textContent = "Turn ON";
-      fanBtn.className = "off";
-      fanIcon.classList.remove("fan-on");
-    }
-  }
-
-  // Initialize UI from Firestore on load
-  fanDocRef.get().then(doc => {
-    if (doc.exists) {
-      updateUI(doc.data().fanState || "off");
-    } else {
-      updateUI("off");
-    }
-  }).catch(console.error);
-</script>
+    // ✅ Initialize state from Firestore
+    fanDocRef.get()
+      .then(doc => {
+        if (doc.exists) {
+          updateUI(doc.data().fanState || "off");
+        } else {
+          updateUI("off");
+        }
+      })
+      .catch(err => console.error("Firestore read error:", err));
+  </script>
 </body>
-</html>
+  </html>
