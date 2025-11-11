@@ -27,14 +27,9 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    .on {
-      background: #4CAF50;
-      color: white;
-    }
-    .off {
-      background: #f44336;
-      color: white;
-    }
+    .on { background: #4CAF50; color: white; }
+    .off { background: #f44336; color: white; }
+
     .fan-icon {
       font-size: 80px;
       margin-top: 20px;
@@ -46,12 +41,44 @@
       animation: spin 1s linear infinite;
     }
     @keyframes spin {
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
-      }
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    #voiceText {
+      font-size: 12px;
+      margin-top: 8px;
+      color: #333;
+    }
+
+    /* Waveform Loader */
+    .wave {
+      width: 50px;
+      height: 15px;
+      margin: 8px auto;
+      display: none;
+    }
+    .wave span {
+      display: inline-block;
+      width: 6px;
+      height: 100%;
+      background: #0099ff;
+      margin: 0 2px;
+      animation: wave 1s linear infinite;
+    }
+    .wave span:nth-child(2){ animation-delay: 0.2s; }
+    .wave span:nth-child(3){ animation-delay: 0.4s; }
+    .wave span:nth-child(4){ animation-delay: 0.6s; }
+    .wave span:nth-child(5){ animation-delay: 0.8s; }
+
+    @keyframes wave {
+      0%,100% { transform: scaleY(0.4); }
+      50% { transform: scaleY(1.2); }
+    }
+
+    #micBtn {
+      background: #2196F3; 
+      color: white;
     }
   </style>
 
@@ -60,17 +87,28 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
   <h1>Anywhere Fan Control</h1>
 
   <div class="card">
     <h2>Fan</h2>
-    <i id="fanIcon" class="fas fa-fan fan-icon"></i>
-    <br />
-    <button id="fanBtn" class="off">Turn ON</button>
+    <i id="fanIcon" class="fas fa-fan fan-icon"></i><br>
+    <button id="fanBtn" class="off">Turn ON</button><br><br>
+
+    <!-- Mic Button -->
+    <button id="micBtn">🎤 Tap to Speak</button>
+
+    <!-- Waveform -->
+    <div class="wave" id="wave">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <!-- Voice Text -->
+    <p id="voiceText">🎧 Say: “fan on” / “fan off”</p>
   </div>
 
 <script>
-  // Firebase config - replace with your own config
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyAPrVzvydC3GuoMe_ztdOi0CBhvg-Cckxw",
     authDomain: "crobot-tech.firebaseapp.com",
@@ -83,47 +121,78 @@
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
-
-  const deviceId = "fanDevice"; // same doc id in Firestore collection
-  const fanDocRef = db.collection("iot_controls").doc(deviceId);
+  const fanDocRef = db.collection("iot_controls").doc("fanDevice");
 
   const fanBtn = document.getElementById("fanBtn");
   const fanIcon = document.getElementById("fanIcon");
+  const micBtn = document.getElementById("micBtn");
+  const wave = document.getElementById("wave");
+  const voiceText = document.getElementById("voiceText");
 
+  // Manual Button control
   fanBtn.onclick = () => {
-    const isOn = fanBtn.classList.contains("on");
-    const newState = isOn ? "off" : "on";
-    fanDocRef.set({ fanState: newState }).catch(console.error);
+    const newState = fanBtn.classList.contains("on") ? "off" : "on";
+    fanDocRef.set({ fanState: newState });
   };
 
-  // Listen for real-time changes and update button UI only (no hardware call here)
-  fanDocRef.onSnapshot(doc => {
-    if (doc.exists) {
-      const data = doc.data();
-      updateUI(data.fanState || "off");
-    }
-  });
-
+  // Update UI
   function updateUI(state) {
     if (state === "on") {
       fanBtn.textContent = "Turn OFF";
-      fanBtn.className = "on";
+      fanBtn.classList = "on";
       fanIcon.classList.add("fan-on");
     } else {
       fanBtn.textContent = "Turn ON";
-      fanBtn.className = "off";
+      fanBtn.classList = "off";
       fanIcon.classList.remove("fan-on");
     }
   }
 
-  // Initialize UI on page load
-  fanDocRef.get().then(doc => {
-    if (doc.exists) {
-      updateUI(doc.data().fanState || "off");
-    } else {
-      updateUI("off");
+  // Firebase Live
+  fanDocRef.onSnapshot(doc => {
+    if (doc.exists) updateUI(doc.data()?.fanState || "off");
+  });
+
+  // Voice Recognition Setup
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  // Listen on mic btn
+  micBtn.onclick = () => {
+    wave.style.display = "block";
+    voiceText.textContent = "Listening... 🎧";
+    recognition.start();
+
+    // Stop after 3 seconds always
+    setTimeout(() => {
+      recognition.stop();
+      wave.style.display = "none";
+    }, 3000);
+  };
+
+  // Process speech
+  recognition.onresult = (event) => {
+    const command = event.results[0][0].transcript.toLowerCase();
+    voiceText.textContent = "🗣️: " + command;
+
+    if (command.includes("fan on")) {
+      fanDocRef.set({ fanState: "on" });
     }
-  }).catch(console.error);
+    else if (command.includes("fan off")) {
+      fanDocRef.set({ fanState: "off" });
+    } 
+    else {
+      voiceText.textContent = "❌ Try: fan on / fan off";
+    }
+  };
+
+  recognition.onerror = () => {
+    wave.style.display = "none";
+  };
 </script>
+
 </body>
 </html>
